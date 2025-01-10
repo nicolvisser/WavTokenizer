@@ -1,0 +1,367 @@
+WavTokenizer(
+  (feature_extractor): EncodecFeatures(
+    (encodec): EncodecModel(
+      (encoder): SEANetEncoder(
+        (model): Sequential(
+          (0): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(1, 32, kernel_size=(7,), stride=(1,))
+              (norm): Identity()
+            )
+          )
+          (1): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(32, 16, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(32, 32, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (2): ELU(alpha=1.0)
+          (3): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(32, 64, kernel_size=(4,), stride=(2,))
+              (norm): Identity()
+            )
+          )
+          (4): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(64, 32, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(64, 64, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (5): ELU(alpha=1.0)
+          (6): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(64, 128, kernel_size=(8,), stride=(4,))
+              (norm): Identity()
+            )
+          )
+          (7): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(128, 64, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (8): ELU(alpha=1.0)
+          (9): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(128, 256, kernel_size=(10,), stride=(5,))
+              (norm): Identity()
+            )
+          )
+          (10): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(256, 128, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(128, 256, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (11): ELU(alpha=1.0)
+          (12): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(256, 512, kernel_size=(16,), stride=(8,))
+              (norm): Identity()
+            )
+          )
+          (13): SLSTM(
+            (lstm): LSTM(512, 512, num_layers=2)
+          )
+          (14): ELU(alpha=1.0)
+          (15): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(512, 512, kernel_size=(7,), stride=(1,))
+              (norm): Identity()
+            )
+          )
+        )
+      )
+      (quantizer): ResidualVectorQuantizer(
+        (vq): LanguageVectorQuantization(
+          (layers): ModuleList(
+            (0): VectorQuantization(
+              (project_in): Identity()
+              (project_out): Identity()
+              (_codebook): EuclideanCodebook()
+            )
+          )
+        )
+      )
+      (decoder): SEANetDecoder(
+        (model): Sequential(
+          (0): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(512, 512, kernel_size=(7,), stride=(1,))
+              (norm): Identity()
+            )
+          )
+          (1): SLSTM(
+            (lstm): LSTM(512, 512, num_layers=2)
+          )
+          (2): ELU(alpha=1.0)
+          (3): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ConvTranspose1d(512, 256, kernel_size=(16,), stride=(8,))
+              (norm): Identity()
+            )
+          )
+          (4): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(256, 128, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(128, 256, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (5): ELU(alpha=1.0)
+          (6): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ConvTranspose1d(256, 128, kernel_size=(10,), stride=(5,))
+              (norm): Identity()
+            )
+          )
+          (7): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(128, 64, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (8): ELU(alpha=1.0)
+          (9): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ConvTranspose1d(128, 64, kernel_size=(8,), stride=(4,))
+              (norm): Identity()
+            )
+          )
+          (10): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(64, 32, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(64, 64, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (11): ELU(alpha=1.0)
+          (12): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ConvTranspose1d(64, 32, kernel_size=(4,), stride=(2,))
+              (norm): Identity()
+            )
+          )
+          (13): SEANetResnetBlock(
+            (block): Sequential(
+              (0): ELU(alpha=1.0)
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(32, 16, kernel_size=(3,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+              (2): ELU(alpha=1.0)
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): Conv1d(32, 32, kernel_size=(1,), stride=(1,))
+                (norm): Identity()
+              )
+            )
+          )
+          (14): ELU(alpha=1.0)
+          (15): SConv1d(
+            (conv): NormConv1d(
+              (conv): Conv1d(32, 1, kernel_size=(7,), stride=(1,))
+              (norm): Identity()
+            )
+          )
+        )
+      )
+    )
+  )
+  (backbone): VocosBackbone(
+    (embed): Conv1d(512, 768, kernel_size=(7,), stride=(1,), padding=(3,))
+    (norm): AdaLayerNorm(
+      (scale): Embedding(4, 768)
+      (shift): Embedding(4, 768)
+    )
+    (convnext): ModuleList(
+      (0-11): 12 x ConvNeXtBlock(
+        (dwconv): Conv1d(768, 768, kernel_size=(7,), stride=(1,), padding=(3,), groups=768)
+        (norm): AdaLayerNorm(
+          (scale): Embedding(4, 768)
+          (shift): Embedding(4, 768)
+        )
+        (pwconv1): Linear(in_features=768, out_features=2304, bias=True)
+        (act): GELU(approximate='none')
+        (pwconv2): Linear(in_features=2304, out_features=768, bias=True)
+      )
+    )
+    (final_layer_norm): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+    (pos_net): Sequential(
+      (0): ResnetBlock(
+        (norm1): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (conv1): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm2): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+        (conv2): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (1): ResnetBlock(
+        (norm1): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (conv1): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm2): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+        (conv2): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (2): AttnBlock(
+        (norm): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (q): Conv1d(768, 768, kernel_size=(1,), stride=(1,))
+        (k): Conv1d(768, 768, kernel_size=(1,), stride=(1,))
+        (v): Conv1d(768, 768, kernel_size=(1,), stride=(1,))
+        (proj_out): Conv1d(768, 768, kernel_size=(1,), stride=(1,))
+      )
+      (3): ResnetBlock(
+        (norm1): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (conv1): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm2): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+        (conv2): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (4): ResnetBlock(
+        (norm1): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (conv1): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm2): GroupNorm(32, 768, eps=1e-06, affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+        (conv2): Conv1d(768, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (5): GroupNorm(32, 768, eps=1e-06, affine=True)
+    )
+  )
+  (head): ISTFTHead(
+    (out): Linear(in_features=768, out_features=1282, bias=True)
+    (istft): ISTFT()
+  )
+)
