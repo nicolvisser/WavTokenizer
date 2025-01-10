@@ -1,18 +1,17 @@
-import os
-from typing import Any, Dict, Tuple, Union
+from typing import Any
 
 import torch
 import yaml
 from torch import nn
 
 from decoder.feature_extractors import EncodecFeatures, FeatureExtractor
-from decoder.heads import FourierHead, ISTFTHead
-from decoder.models import Backbone, VocosBackbone
+from decoder.heads import ISTFTHead
+from decoder.models import VocosBackbone
 
 
 class WavTokenizer(nn.Module):
     """
-    The Vocos class represents a Fourier-based neural vocoder for audio synthesis.
+    The WavTokenizer class represents a Fourier-based neural vocoder for audio synthesis.
     This class is primarily designed for inference, with support for loading from pretrained
     model checkpoints. It consists of three main components: a feature extractor,
     a backbone, and a head.
@@ -21,8 +20,8 @@ class WavTokenizer(nn.Module):
     def __init__(
         self,
         feature_extractor: FeatureExtractor,
-        backbone: Backbone,
-        head: FourierHead,
+        backbone: VocosBackbone,
+        head: ISTFTHead,
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
@@ -30,9 +29,9 @@ class WavTokenizer(nn.Module):
         self.head = head
 
     @classmethod
-    def from_hparams0802(cls, config_path: str) -> "Vocos":
+    def from_hparams0802(cls, config_path: str) -> "WavTokenizer":
         """
-        Class method to create a new Vocos model instance from hyperparameters stored in a yaml configuration file.
+        Class method to create a new WavTokenizer model instance from hyperparameters stored in a yaml configuration file.
         """
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
@@ -84,9 +83,9 @@ class WavTokenizer(nn.Module):
         return model
 
     @classmethod
-    def from_pretrained0802(self, config_path, model_path):
+    def from_pretrained0802(self, config_path, model_path) -> "WavTokenizer":
         """
-        Class method to create a new Vocos model instance from a pre-trained model stored locally.
+        Class method to create a new WavTokenizer model instance from a pre-trained model stored locally.
         """
         model = self.from_hparams0802(config_path)
         state_dict_raw = torch.load(model_path, map_location="cpu")["state_dict"]
