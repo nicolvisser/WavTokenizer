@@ -36,6 +36,10 @@ class WavTokenizer(nn.Module):
         self.backbone = backbone
         self.head = head
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
     @classmethod
     def from_hparams(cls, config_path: str) -> "WavTokenizer":
         """
