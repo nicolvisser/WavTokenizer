@@ -1,5 +1,2 @@
 torch
 torchaudio
-einops
-soundfile
-pyyaml
