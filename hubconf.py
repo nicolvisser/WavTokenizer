@@ -24,8 +24,8 @@ def _load(
     model = WavTokenizer(args=args)
     if pretrained:
         state_dict_raw = torch.hub.load_state_dict_from_url(
-            url, map_location=map_location, progress=progress
-        )
+            url, map_location=map_location, progress=progress, weights_only=True
+        )["state_dict"]
         state_dict = dict()
         for k, v in state_dict_raw.items():
             if (
@@ -66,3 +66,13 @@ def small_320_24k_4096(
         map_location=map_location,
         progress=progress,
     )
+
+
+if __name__ == "__main__":
+    state_dict = torch.hub.load_state_dict_from_url(
+        URLS["small_600_24k_4096"],
+        map_location="cpu",
+        progress=True,
+        weights_only=True,
+    )
+    print(state_dict.keys())
