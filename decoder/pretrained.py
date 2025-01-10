@@ -57,7 +57,9 @@ class WavTokenizer(nn.Module):
         Class method to create a new WavTokenizer model instance from a pre-trained model stored locally.
         """
         model = self.from_hparams(config_path)
-        state_dict_raw = torch.load(model_path, map_location="cpu")["state_dict"]
+        state_dict_raw = torch.load(model_path, map_location="cpu", weights_only=True)[
+            "state_dict"
+        ]
         state_dict = dict()
         for k, v in state_dict_raw.items():
             if (

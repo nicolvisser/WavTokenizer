@@ -278,7 +278,7 @@ class EncodecModel(nn.Module):
             file = repository / checkpoint_name
             checksum = file.stem.split("-")[1]
             _check_checksum(file, checksum)
-            return torch.load(file)
+            return torch.load(file, weights_only=True)
         else:
             url = _get_checkpoint_url(ROOT_URL, checkpoint_name)
             return torch.hub.load_state_dict_from_url(
