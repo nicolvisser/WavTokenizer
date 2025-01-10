@@ -4,9 +4,11 @@ import torchaudio
 from decoder.pretrained import WavTokenizer
 from encoder.utils import convert_audio
 
-CONFIG_PATHS = {
-    "40hz": "/mnt/wsl/nvme/code/wavtokenizer-py312/WavTokenizer/configs/wavtokenizer_smalldata_frame40_3s_nq1_code4096_dim512_kmeans200_attn.yaml",
-    "75hz": "/mnt/wsl/nvme/code/wavtokenizer-py312/WavTokenizer/configs/wavtokenizer_smalldata_frame75_3s_nq1_code4096_dim512_kmeans200_attn.yaml",
+from configs import small_600_24k_4096, small_320_24k_4096
+
+CONFIGS = {
+    "40hz": small_600_24k_4096,
+    "75hz": small_320_24k_4096,
 }
 
 CHECKPOINT_PATHS = {
@@ -28,10 +30,10 @@ audio_path = "data/sample.flac"
 device = torch.device("cpu")
 
 for rate in ["40hz", "75hz"]:
-    config_path = CONFIG_PATHS[rate]
+    args = CONFIGS[rate]
     model_path = CHECKPOINT_PATHS[rate]
 
-    wavtokenizer = WavTokenizer.from_pretrained(config_path, model_path)
+    wavtokenizer = WavTokenizer.from_pretrained(args, model_path)
     wavtokenizer = wavtokenizer.to(device)
 
     wav, sr = torchaudio.load(audio_path)

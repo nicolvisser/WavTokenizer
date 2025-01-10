@@ -10,7 +10,6 @@ import math
 import typing as tp
 from pathlib import Path
 
-import numpy as np
 import torch
 from torch import nn
 
@@ -109,7 +108,7 @@ class EncodecModel(nn.Module):
         self.normalize = normalize
         self.segment = segment
         self.overlap = overlap
-        self.frame_rate = math.ceil(self.sample_rate / np.prod(self.encoder.ratios))
+        self.frame_rate = math.ceil(self.sample_rate / math.prod(self.encoder.ratios))
         self.name = name
         self.bits_per_codebook = int(math.log2(self.quantizer.bins))
         assert (

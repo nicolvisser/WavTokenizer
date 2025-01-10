@@ -6,9 +6,9 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
+import math
 import typing as tp
 
-import numpy as np
 import torch.nn as nn
 
 from . import SLSTM, SConv1d, SConvTranspose1d
@@ -140,7 +140,7 @@ class SEANetEncoder(nn.Module):
         self.ratios = list(reversed(ratios))
         del ratios
         self.n_residual_layers = n_residual_layers
-        self.hop_length = np.prod(self.ratios)
+        self.hop_length = math.prod(self.ratios)
 
         act = getattr(nn, activation)
         mult = 1
@@ -272,7 +272,7 @@ class SEANetDecoder(nn.Module):
         self.ratios = ratios
         del ratios
         self.n_residual_layers = n_residual_layers
-        self.hop_length = np.prod(self.ratios)
+        self.hop_length = math.prod(self.ratios)
 
         act = getattr(nn, activation)
         mult = int(2 ** len(self.ratios))

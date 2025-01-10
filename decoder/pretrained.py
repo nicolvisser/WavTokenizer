@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import torch
-import yaml
 from torch import nn
 
 from decoder.feature_extractors import EncodecFeatures, EncodecFeaturesArgs
@@ -27,40 +26,20 @@ class WavTokenizer(nn.Module):
 
     def __init__(
         self,
-        feature_extractor: EncodecFeatures,
-        backbone: VocosBackbone,
-        head: ISTFTHead,
+        args: WavTokenizerArgs,
     ):
         super().__init__()
-        self.feature_extractor = feature_extractor
-        self.backbone = backbone
-        self.head = head
+        self.feature_extractor = EncodecFeatures(args.feature_extractor)
+        self.backbone = VocosBackbone(args.backbone)
+        self.head = ISTFTHead(args.head)
 
     @property
     def device(self):
         return next(self.parameters()).device
 
     @classmethod
-    def from_hparams(cls, config_path: str) -> "WavTokenizer":
-        """
-        Class method to create a new WavTokenizer model instance from hyperparameters stored in a yaml configuration file.
-        """
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
-        feature_extractor = EncodecFeatures(
-            EncodecFeaturesArgs(**config["feature_extractor"])
-        )
-        backbone = VocosBackbone(VocosBackboneArgs(**config["backbone"]))
-        head = ISTFTHead(ISTFTHeadArgs(**config["head"]))
-        model = cls(feature_extractor=feature_extractor, backbone=backbone, head=head)
-        return model
-
-    @classmethod
-    def from_pretrained(self, config_path, model_path) -> "WavTokenizer":
-        """
-        Class method to create a new WavTokenizer model instance from a pre-trained model stored locally.
-        """
-        model = self.from_hparams(config_path)
+    def from_pretrained(cls, args: WavTokenizerArgs, model_path: str) -> "WavTokenizer":
+        model = cls(args)
         state_dict_raw = torch.load(model_path, map_location="cpu", weights_only=True)[
             "state_dict"
         ]
