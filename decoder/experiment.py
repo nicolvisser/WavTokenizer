@@ -5,18 +5,17 @@ import pytorch_lightning as pl
 import torch
 import torchaudio
 import transformers
-import yaml
 
 from decoder.discriminator_dac import DACDiscriminator
-
-from decoder.discriminators import MultiPeriodDiscriminator, MultiResolutionDiscriminator
+from decoder.discriminators import (MultiPeriodDiscriminator,
+                                    MultiResolutionDiscriminator)
 from decoder.feature_extractors import FeatureExtractor
 from decoder.heads import FourierHead
 from decoder.helpers import plot_spectrogram_to_numpy
-from decoder.loss import DiscriminatorLoss, GeneratorLoss, FeatureMatchingLoss, MelSpecReconstructionLoss, DACGANLoss
+from decoder.loss import (DACGANLoss, DiscriminatorLoss, FeatureMatchingLoss,
+                          GeneratorLoss, MelSpecReconstructionLoss)
 from decoder.models import Backbone
 from decoder.modules import safe_log
-from decoder.pretrained_model import instantiate_class
 
 
 class VocosExp(pl.LightningModule):
