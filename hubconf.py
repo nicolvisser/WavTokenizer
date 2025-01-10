@@ -9,19 +9,22 @@ URLS = {
 import torch
 
 from configs import ARGS_SMALL_320_24K_4096, ARGS_SMALL_600_24K_4096
-from decoder.pretrained import WavTokenizer
+from decoder.pretrained import WavTokenizer, WavTokenizerArgs
 
 
-def small_600_24k_4096(
+def _load(
+    args: WavTokenizerArgs,
+    url: str,
     pretrained: bool = True,
+    map_location="cpu",
     progress: bool = True,
 ) -> WavTokenizer:
     """WavTokenizer small. 24kHz, 600x downsample (40 Hz), 4096 codebook entries."""
 
-    model = WavTokenizer(args=ARGS_SMALL_600_24K_4096)
+    model = WavTokenizer(args=args)
     if pretrained:
         state_dict_raw = torch.hub.load_state_dict_from_url(
-            URLS["small_600_24k_4096"], progress=progress
+            url, map_location=map_location, progress=progress
         )
         state_dict = dict()
         for k, v in state_dict_raw.items():
@@ -34,32 +37,32 @@ def small_600_24k_4096(
         model.load_state_dict(state_dict)
         model.eval()
     return model
+
+
+def small_600_24k_4096(
+    pretrained: bool = True,
+    map_location="cpu",
+    progress: bool = True,
+) -> WavTokenizer:
+    return _load(
+        args=ARGS_SMALL_600_24K_4096,
+        url=URLS["small_600_24k_4096"],
+        pretrained=pretrained,
+        map_location=map_location,
+        progress=progress,
+    )
 
 
 def small_320_24k_4096(
     pretrained: bool = True,
+    map_location="cpu",
     progress: bool = True,
 ) -> WavTokenizer:
     """WavTokenizer small. 24kHz, 320x downsample (75 Hz), 4096 codebook entries."""
-
-    model = WavTokenizer(args=ARGS_SMALL_320_24K_4096)
-    if pretrained:
-        state_dict_raw = torch.hub.load_state_dict_from_url(
-            URLS["small_320_24k_4096"], progress=progress
-        )
-        state_dict = dict()
-        for k, v in state_dict_raw.items():
-            if (
-                k.startswith("backbone.")
-                or k.startswith("head.")
-                or k.startswith("feature_extractor.")
-            ):
-                state_dict[k] = v
-        model.load_state_dict(state_dict)
-        model.eval()
-    return model
-
-
-if __name__ == "__main__":
-    model = small_600_24k_4096(pretrained=True, progress=True)
-    print(model)
+    return _load(
+        args=ARGS_SMALL_320_24K_4096,
+        url=URLS["small_320_24k_4096"],
+        pretrained=pretrained,
+        map_location=map_location,
+        progress=progress,
+    )
