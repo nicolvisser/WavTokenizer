@@ -8,7 +8,6 @@
 
 import typing as tp
 
-import einops
 import torch
 from torch import nn
 
@@ -25,7 +24,9 @@ class ConvLayerNorm(nn.LayerNorm):
         super().__init__(normalized_shape, **kwargs)
 
     def forward(self, x):
-        x = einops.rearrange(x, "b ... t -> b t ...")
+        # Move channels to last dimension
+        x = x.permute(0, -1, *range(1, x.dim() - 1))
         x = super().forward(x)
-        x = einops.rearrange(x, "b t ... -> b ... t")
-        return
+        # Move channels back to original position
+        x = x.permute(0, *range(2, x.dim()), 1)
+        return x

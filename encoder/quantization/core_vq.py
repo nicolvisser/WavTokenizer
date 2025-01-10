@@ -36,7 +36,6 @@ import warnings
 
 import torch
 import torch.nn.functional as F
-from einops import rearrange, repeat
 from torch import nn
 
 def default(val: tp.Any, d: tp.Any) -> tp.Any:
@@ -70,11 +69,13 @@ def sample_vectors(samples, num: int):
 
 def kmeans(samples, num_clusters: int, num_iters: int = 10):
     dim, dtype = samples.shape[-1], samples.dtype
-
     means = sample_vectors(samples, num_clusters)
 
     for _ in range(num_iters):
-        diffs = rearrange(samples, "n d -> n () d") - rearrange(means, "c d -> () c d")
+        samples_expanded = samples.unsqueeze(1)  # n 1 d
+        means_expanded = means.unsqueeze(0)      # 1 c d
+        diffs = samples_expanded - means_expanded
+        
         dists = -(diffs**2).sum(dim=-1)
 
         buckets = dists.max(dim=-1).indices
@@ -83,10 +84,11 @@ def kmeans(samples, num_clusters: int, num_iters: int = 10):
         bins_min_clamped = bins.masked_fill(zero_mask, 1)
 
         new_means = buckets.new_zeros(num_clusters, dim, dtype=dtype)
-        new_means.scatter_add_(0, repeat(buckets, "n -> n d", d=dim), samples)
-        new_means = new_means / bins_min_clamped[..., None]
+        buckets_expanded = buckets.unsqueeze(-1).expand(-1, dim)
+        new_means.scatter_add_(0, buckets_expanded, samples)
+        new_means = new_means / bins_min_clamped.unsqueeze(-1)
 
-        means = torch.where(zero_mask[..., None], means, new_means)
+        means = torch.where(zero_mask.unsqueeze(-1), means, new_means)
 
     return means, bins
 
@@ -164,12 +166,12 @@ class EuclideanCodebook(nn.Module):
         if not torch.any(expired_codes):
             return
 
-        batch_samples = rearrange(batch_samples, "... d -> (...) d")
+        batch_samples = batch_samples.reshape(-1, batch_samples.size(-1))
         self.replace_(batch_samples, mask=expired_codes)
         #distrib.broadcast_tensors(self.buffers())
 
     def preprocess(self, x):
-        x = rearrange(x, "... d -> (...) d")
+        x = x.reshape(-1, x.size(-1))
         return x
 
     def quantize(self, x):
@@ -190,17 +192,15 @@ class EuclideanCodebook(nn.Module):
         return quantize
 
     def encode(self, x):
-        shape = x.shape
-        # pre-process
-        x = self.preprocess(x)
-        # quantize
-        embed_ind = self.quantize(x)
-        # post-process
-        embed_ind = self.postprocess_emb(embed_ind, shape)
-        return embed_ind
+        x = x.permute(0, 2, 1)
+        x = self.project_in(x)
+        embed_in = self._codebook.encode(x)
+        return embed_in
 
     def decode(self, embed_ind):
-        quantize = self.dequantize(embed_ind)
+        quantize = self._codebook.decode(embed_ind)
+        quantize = self.project_out(quantize)
+        quantize = quantize.permute(0, 2, 1)
         return quantize
 
     def forward(self, x):
@@ -290,7 +290,7 @@ class VectorQuantization(nn.Module):
         return self._codebook.embed
 
     def encode(self, x):
-        x = rearrange(x, "b d n -> b n d")
+        x = x.permute(0, 2, 1)
         x = self.project_in(x)
         embed_in = self._codebook.encode(x)
         return embed_in
@@ -298,14 +298,14 @@ class VectorQuantization(nn.Module):
     def decode(self, embed_ind):
         quantize = self._codebook.decode(embed_ind)
         quantize = self.project_out(quantize)
-        quantize = rearrange(quantize, "b n d -> b d n")
+        quantize = quantize.permute(0, 2, 1)
         return quantize
 
     def forward(self, x):
 
         # breakpoint()
         device = x.device
-        x = rearrange(x, "b d n -> b n d")
+        x = x.permute(0, 2, 1)
         x = self.project_in(x)
         quantize, embed_ind = self._codebook(x)
         if self.training:
@@ -321,7 +321,7 @@ class VectorQuantization(nn.Module):
                 loss = loss + commit_loss * self.commitment_weight
 
         quantize = self.project_out(quantize)
-        quantize = rearrange(quantize, "b n d -> b d n")
+        quantize = quantize.permute(0, 2, 1)
         return quantize, embed_ind, loss
 
 
