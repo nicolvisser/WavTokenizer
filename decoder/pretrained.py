@@ -6,7 +6,7 @@ import yaml
 from torch import nn
 
 from decoder.feature_extractors import EncodecFeatures, EncodecFeaturesArgs
-from decoder.heads import ISTFTHead
+from decoder.heads import ISTFTHead, ISTFTHeadArgs
 from decoder.models import VocosBackbone, VocosBackboneArgs
 
 
@@ -14,6 +14,7 @@ from decoder.models import VocosBackbone, VocosBackboneArgs
 class WavTokenizerArgs:
     feature_extractor: EncodecFeaturesArgs = field(default_factory=EncodecFeaturesArgs)
     backbone: VocosBackboneArgs = field(default_factory=VocosBackboneArgs)
+    head: ISTFTHeadArgs = field(default_factory=ISTFTHeadArgs)
 
 
 class WavTokenizer(nn.Module):
@@ -51,10 +52,7 @@ class WavTokenizer(nn.Module):
             VocosBackboneArgs(**config["model"]["init_args"]["backbone"]["init_args"])
         )
         head = ISTFTHead(
-            dim=config["model"]["init_args"]["head"]["init_args"]["dim"],
-            n_fft=config["model"]["init_args"]["head"]["init_args"]["n_fft"],
-            hop_length=config["model"]["init_args"]["head"]["init_args"]["hop_length"],
-            padding=config["model"]["init_args"]["head"]["init_args"]["padding"],
+            ISTFTHeadArgs(**config["model"]["init_args"]["head"]["init_args"])
         )
         model = cls(feature_extractor=feature_extractor, backbone=backbone, head=head)
         return model
