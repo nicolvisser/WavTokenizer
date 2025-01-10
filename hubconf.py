@@ -16,7 +16,6 @@ def _load(
     args: WavTokenizerArgs,
     url: str,
     pretrained: bool = True,
-    map_location="cpu",
     progress: bool = True,
 ) -> WavTokenizer:
     """WavTokenizer small. 24kHz, 600x downsample (40 Hz), 4096 codebook entries."""
@@ -24,7 +23,7 @@ def _load(
     model = WavTokenizer(args=args)
     if pretrained:
         state_dict_raw = torch.hub.load_state_dict_from_url(
-            url, map_location=map_location, progress=progress, weights_only=True
+            url, map_location='cpu', progress=progress, weights_only=True
         )["state_dict"]
         state_dict = dict()
         for k, v in state_dict_raw.items():
@@ -41,21 +40,18 @@ def _load(
 
 def small_600_24k_4096(
     pretrained: bool = True,
-    map_location="cpu",
     progress: bool = True,
 ) -> WavTokenizer:
     return _load(
         args=ARGS_SMALL_600_24K_4096,
         url=URLS["small_600_24k_4096"],
         pretrained=pretrained,
-        map_location=map_location,
         progress=progress,
     )
 
 
 def small_320_24k_4096(
     pretrained: bool = True,
-    map_location="cpu",
     progress: bool = True,
 ) -> WavTokenizer:
     """WavTokenizer small. 24kHz, 320x downsample (75 Hz), 4096 codebook entries."""
@@ -63,7 +59,6 @@ def small_320_24k_4096(
         args=ARGS_SMALL_320_24K_4096,
         url=URLS["small_320_24k_4096"],
         pretrained=pretrained,
-        map_location=map_location,
         progress=progress,
     )
 
@@ -71,7 +66,6 @@ def small_320_24k_4096(
 if __name__ == "__main__":
     state_dict = torch.hub.load_state_dict_from_url(
         URLS["small_600_24k_4096"],
-        map_location="cpu",
         progress=True,
         weights_only=True,
     )
