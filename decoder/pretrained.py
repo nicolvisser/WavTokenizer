@@ -7,15 +7,13 @@ from torch import nn
 
 from decoder.feature_extractors import EncodecFeatures, EncodecFeaturesArgs
 from decoder.heads import ISTFTHead
-from decoder.models import VocosBackbone
+from decoder.models import VocosBackbone, VocosBackboneArgs
 
 
 @dataclass
 class WavTokenizerArgs:
     feature_extractor: EncodecFeaturesArgs = field(default_factory=EncodecFeaturesArgs)
-
-
-global_args = WavTokenizerArgs()  # temporary
+    backbone: VocosBackboneArgs = field(default_factory=VocosBackboneArgs)
 
 
 class WavTokenizer(nn.Module):
@@ -44,21 +42,13 @@ class WavTokenizer(nn.Module):
         """
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        feature_extractor = EncodecFeatures(global_args.feature_extractor)
+        feature_extractor = EncodecFeatures(
+            EncodecFeaturesArgs(
+                **config["model"]["init_args"]["feature_extractor"]["init_args"]
+            )
+        )
         backbone = VocosBackbone(
-            input_channels=config["model"]["init_args"]["backbone"]["init_args"][
-                "input_channels"
-            ],
-            dim=config["model"]["init_args"]["backbone"]["init_args"]["dim"],
-            intermediate_dim=config["model"]["init_args"]["backbone"]["init_args"][
-                "intermediate_dim"
-            ],
-            num_layers=config["model"]["init_args"]["backbone"]["init_args"][
-                "num_layers"
-            ],
-            adanorm_num_embeddings=config["model"]["init_args"]["backbone"][
-                "init_args"
-            ]["adanorm_num_embeddings"],
+            VocosBackboneArgs(**config["model"]["init_args"]["backbone"]["init_args"])
         )
         head = ISTFTHead(
             dim=config["model"]["init_args"]["head"]["init_args"]["dim"],

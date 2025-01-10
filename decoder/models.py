@@ -1,10 +1,10 @@
-from typing import Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 import torch
 from torch import nn
-from torch.nn.utils import weight_norm
 
-from decoder.modules import AdaLayerNorm, ConvNeXtBlock, ResBlock1
+from decoder.modules import AdaLayerNorm, ConvNeXtBlock
 
 
 def nonlinearity(x):
@@ -127,23 +127,17 @@ def make_attn(in_channels, attn_type="vanilla"):
         return AttnBlock(in_channels)
 
 
-class Backbone(nn.Module):
-    """Base class for the generator's backbone. It preserves the same temporal resolution across all layers."""
-
-    def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        """
-        Args:
-            x (Tensor): Input tensor of shape (B, C, L), where B is the batch size,
-                        C denotes output features, and L is the sequence length.
-
-        Returns:
-            Tensor: Output of shape (B, L, H), where B is the batch size, L is the sequence length,
-                    and H denotes the model dimension.
-        """
-        raise NotImplementedError("Subclasses must implement the forward method.")
+@dataclass
+class VocosBackboneArgs:
+    input_channels: int = 512
+    dim: int = 768
+    intermediate_dim: int = 2304
+    num_layers: int = 12
+    layer_scale_init_value: Optional[float] = None
+    adanorm_num_embeddings: Optional[int] = None
 
 
-class VocosBackbone(Backbone):
+class VocosBackbone(nn.Module):
     """
     Vocos backbone module built with ConvNeXt blocks. Supports additional conditioning with Adaptive Layer Normalization
 
@@ -159,42 +153,37 @@ class VocosBackbone(Backbone):
 
     def __init__(
         self,
-        input_channels: int,
-        dim: int,
-        intermediate_dim: int,
-        num_layers: int,
-        layer_scale_init_value: Optional[float] = None,
-        adanorm_num_embeddings: Optional[int] = None,
+        args: VocosBackboneArgs,
     ):
         super().__init__()
-        self.input_channels = input_channels
-        self.embed = nn.Conv1d(input_channels, dim, kernel_size=7, padding=3)
-        self.adanorm = adanorm_num_embeddings is not None
-        if adanorm_num_embeddings:
-            self.norm = AdaLayerNorm(adanorm_num_embeddings, dim, eps=1e-6)
+        self.input_channels = args.input_channels
+        self.embed = nn.Conv1d(args.input_channels, args.dim, kernel_size=7, padding=3)
+        self.adanorm = args.adanorm_num_embeddings is not None
+        if args.adanorm_num_embeddings:
+            self.norm = AdaLayerNorm(args.adanorm_num_embeddings, args.dim, eps=1e-6)
         else:
-            self.norm = nn.LayerNorm(dim, eps=1e-6)
-        layer_scale_init_value = layer_scale_init_value or 1 / num_layers
+            self.norm = nn.LayerNorm(args.dim, eps=1e-6)
+        layer_scale_init_value = args.layer_scale_init_value or 1 / args.num_layers
         self.convnext = nn.ModuleList(
             [
                 ConvNeXtBlock(
-                    dim=dim,
-                    intermediate_dim=intermediate_dim,
+                    dim=args.dim,
+                    intermediate_dim=args.intermediate_dim,
                     layer_scale_init_value=layer_scale_init_value,
-                    adanorm_num_embeddings=adanorm_num_embeddings,
+                    adanorm_num_embeddings=args.adanorm_num_embeddings,
                 )
-                for _ in range(num_layers)
+                for _ in range(args.num_layers)
             ]
         )
-        self.final_layer_norm = nn.LayerNorm(dim, eps=1e-6)
+        self.final_layer_norm = nn.LayerNorm(args.dim, eps=1e-6)
         self.apply(self._init_weights)
 
         self.temb_ch = 0
-        block_in = dim
+        block_in = args.dim
         dropout = 0.1
         attn_type = "vanilla"
 
-        pos_net: tp.List[nn.Module] = [
+        pos_net: List[nn.Module] = [
             ResnetBlock(
                 in_channels=block_in,
                 out_channels=block_in,
@@ -244,42 +233,4 @@ class VocosBackbone(Backbone):
         for conv_block in self.convnext:
             x = conv_block(x, cond_embedding_id=bandwidth_id)
         x = self.final_layer_norm(x.transpose(1, 2))
-        return x
-
-
-class VocosResNetBackbone(Backbone):
-    """
-    Vocos backbone module built with ResBlocks.
-
-    Args:
-        input_channels (int): Number of input features channels.
-        dim (int): Hidden dimension of the model.
-        num_blocks (int): Number of ResBlock1 blocks.
-        layer_scale_init_value (float, optional): Initial value for layer scaling. Defaults to None.
-    """
-
-    def __init__(
-        self,
-        input_channels,
-        dim,
-        num_blocks,
-        layer_scale_init_value=None,
-    ):
-        super().__init__()
-        self.input_channels = input_channels
-        self.embed = weight_norm(
-            nn.Conv1d(input_channels, dim, kernel_size=3, padding=1)
-        )
-        layer_scale_init_value = layer_scale_init_value or 1 / num_blocks / 3
-        self.resnet = nn.Sequential(
-            *[
-                ResBlock1(dim=dim, layer_scale_init_value=layer_scale_init_value)
-                for _ in range(num_blocks)
-            ]
-        )
-
-    def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        x = self.embed(x)
-        x = self.resnet(x)
-        x = x.transpose(1, 2)
         return x
