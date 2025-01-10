@@ -5,8 +5,10 @@ import yaml
 from huggingface_hub import hf_hub_download
 from torch import nn
 
-from decoder.discriminators import (MultiPeriodDiscriminator,
-                                    MultiResolutionDiscriminator)
+from decoder.discriminators import (
+    MultiPeriodDiscriminator,
+    MultiResolutionDiscriminator,
+)
 from decoder.feature_extractors import EncodecFeatures, FeatureExtractor
 from decoder.heads import FourierHead, ISTFTHead
 from decoder.models import Backbone, VocosBackbone
@@ -21,8 +23,12 @@ class WavTokenizer(nn.Module):
     """
 
     def __init__(
-        self, feature_extractor: FeatureExtractor, backbone: Backbone, head: FourierHead,
-            multiperioddisc: MultiPeriodDiscriminator, multiresddisc: MultiResolutionDiscriminator,
+        self,
+        feature_extractor: FeatureExtractor,
+        backbone: Backbone,
+        head: FourierHead,
+        multiperioddisc: MultiPeriodDiscriminator,
+        multiresddisc: MultiResolutionDiscriminator,
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
@@ -40,30 +46,54 @@ class WavTokenizer(nn.Module):
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
         feature_extractor = EncodecFeatures(
-            encodec_model=config['model']['init_args']["feature_extractor"]["init_args"]["encodec_model"],
-            bandwidths=config['model']['init_args']["feature_extractor"]["init_args"]["bandwidths"],
-            train_codebooks=config['model']['init_args']["feature_extractor"]["init_args"]["train_codebooks"],
-            num_quantizers=config['model']['init_args']["feature_extractor"]["init_args"]["num_quantizers"],
-            dowmsamples=config['model']['init_args']["feature_extractor"]["init_args"]["dowmsamples"],
-            vq_bins=config['model']['init_args']["feature_extractor"]["init_args"]["vq_bins"],
+            encodec_model=config["model"]["init_args"]["feature_extractor"][
+                "init_args"
+            ]["encodec_model"],
+            bandwidths=config["model"]["init_args"]["feature_extractor"]["init_args"][
+                "bandwidths"
+            ],
+            train_codebooks=config["model"]["init_args"]["feature_extractor"][
+                "init_args"
+            ]["train_codebooks"],
+            num_quantizers=config["model"]["init_args"]["feature_extractor"][
+                "init_args"
+            ]["num_quantizers"],
+            dowmsamples=config["model"]["init_args"]["feature_extractor"]["init_args"][
+                "dowmsamples"
+            ],
+            vq_bins=config["model"]["init_args"]["feature_extractor"]["init_args"][
+                "vq_bins"
+            ],
             vq_kmeans=config["feature_extractor"]["init_args"]["vq_kmeans"],
         )
         backbone = VocosBackbone(
-            input_channels=config['model']['init_args']["backbone"]["init_args"]["input_channels"],
-            dim=config['model']['init_args']["backbone"]["init_args"]["dim"],
-            intermediate_dim=config['model']['init_args']["backbone"]["init_args"]["intermediate_dim"],
-            num_layers=config['model']['init_args']["backbone"]["init_args"]["num_layers"],
-            adanorm_num_embeddings=config['model']['init_args']["backbone"]["init_args"]["adanorm_num_embeddings"],
+            input_channels=config["model"]["init_args"]["backbone"]["init_args"][
+                "input_channels"
+            ],
+            dim=config["model"]["init_args"]["backbone"]["init_args"]["dim"],
+            intermediate_dim=config["model"]["init_args"]["backbone"]["init_args"][
+                "intermediate_dim"
+            ],
+            num_layers=config["model"]["init_args"]["backbone"]["init_args"][
+                "num_layers"
+            ],
+            adanorm_num_embeddings=config["model"]["init_args"]["backbone"][
+                "init_args"
+            ]["adanorm_num_embeddings"],
         )
         head = ISTFTHead(
-            dim=config['model']['init_args']["head"]["init_args"]["dim"],
-            n_fft=config['model']['init_args']["head"]["init_args"]["n_fft"],
-            hop_length=config['model']['init_args']["head"]["init_args"]["hop_length"],
-            padding=config['model']['init_args']["head"]["init_args"]["padding"],
+            dim=config["model"]["init_args"]["head"]["init_args"]["dim"],
+            n_fft=config["model"]["init_args"]["head"]["init_args"]["n_fft"],
+            hop_length=config["model"]["init_args"]["head"]["init_args"]["hop_length"],
+            padding=config["model"]["init_args"]["head"]["init_args"]["padding"],
         )
-        model = cls(feature_extractor=feature_extractor, backbone=backbone, head=head,
-                    multiperioddisc=MultiPeriodDiscriminator(num_embeddings=4),
-                    multiresddisc=MultiResolutionDiscriminator(num_embeddings=4))
+        model = cls(
+            feature_extractor=feature_extractor,
+            backbone=backbone,
+            head=head,
+            multiperioddisc=MultiPeriodDiscriminator(num_embeddings=4),
+            multiresddisc=MultiResolutionDiscriminator(num_embeddings=4),
+        )
         return model
 
     @classmethod
@@ -72,11 +102,16 @@ class WavTokenizer(nn.Module):
         Class method to create a new Vocos model instance from a pre-trained model stored in the Hugging Face model hub.
         """
         model = self.from_hparams0828(config_path)
-        state_dict_raw = torch.load(model_path, map_location="cpu")['state_dict']
+        state_dict_raw = torch.load(model_path, map_location="cpu")["state_dict"]
         state_dict = dict()
         for k, v in state_dict_raw.items():
-            if k.startswith('backbone.') or k.startswith('head.') or k.startswith('feature_extractor.') \
-                    or k.startswith('multiperioddisc.') or k.startswith('multiresddisc.'):
+            if (
+                k.startswith("backbone.")
+                or k.startswith("head.")
+                or k.startswith("feature_extractor.")
+                or k.startswith("multiperioddisc.")
+                or k.startswith("multiresddisc.")
+            ):
                 state_dict[k] = v
         # if isinstance(model.feature_extractor, EncodecFeatures):
         #     encodec_parameters = {
@@ -95,26 +130,46 @@ class WavTokenizer(nn.Module):
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
         feature_extractor = EncodecFeatures(
-            encodec_model=config['model']['init_args']["feature_extractor"]["init_args"]["encodec_model"],
-            bandwidths=config['model']['init_args']["feature_extractor"]["init_args"]["bandwidths"],
-            train_codebooks=config['model']['init_args']["feature_extractor"]["init_args"]["train_codebooks"],
-            num_quantizers=config['model']['init_args']["feature_extractor"]["init_args"]["num_quantizers"],
-            dowmsamples=config['model']['init_args']["feature_extractor"]["init_args"]["dowmsamples"],
-            vq_bins=config['model']['init_args']["feature_extractor"]["init_args"]["vq_bins"],
+            encodec_model=config["model"]["init_args"]["feature_extractor"][
+                "init_args"
+            ]["encodec_model"],
+            bandwidths=config["model"]["init_args"]["feature_extractor"]["init_args"][
+                "bandwidths"
+            ],
+            train_codebooks=config["model"]["init_args"]["feature_extractor"][
+                "init_args"
+            ]["train_codebooks"],
+            num_quantizers=config["model"]["init_args"]["feature_extractor"][
+                "init_args"
+            ]["num_quantizers"],
+            dowmsamples=config["model"]["init_args"]["feature_extractor"]["init_args"][
+                "dowmsamples"
+            ],
+            vq_bins=config["model"]["init_args"]["feature_extractor"]["init_args"][
+                "vq_bins"
+            ],
             vq_kmeans=config["feature_extractor"]["init_args"]["vq_kmeans"],
         )
         backbone = VocosBackbone(
-            input_channels=config['model']['init_args']["backbone"]["init_args"]["input_channels"],
-            dim=config['model']['init_args']["backbone"]["init_args"]["dim"],
-            intermediate_dim=config['model']['init_args']["backbone"]["init_args"]["intermediate_dim"],
-            num_layers=config['model']['init_args']["backbone"]["init_args"]["num_layers"],
-            adanorm_num_embeddings=config['model']['init_args']["backbone"]["init_args"]["adanorm_num_embeddings"],
+            input_channels=config["model"]["init_args"]["backbone"]["init_args"][
+                "input_channels"
+            ],
+            dim=config["model"]["init_args"]["backbone"]["init_args"]["dim"],
+            intermediate_dim=config["model"]["init_args"]["backbone"]["init_args"][
+                "intermediate_dim"
+            ],
+            num_layers=config["model"]["init_args"]["backbone"]["init_args"][
+                "num_layers"
+            ],
+            adanorm_num_embeddings=config["model"]["init_args"]["backbone"][
+                "init_args"
+            ]["adanorm_num_embeddings"],
         )
         head = ISTFTHead(
-            dim=config['model']['init_args']["head"]["init_args"]["dim"],
-            n_fft=config['model']['init_args']["head"]["init_args"]["n_fft"],
-            hop_length=config['model']['init_args']["head"]["init_args"]["hop_length"],
-            padding=config['model']['init_args']["head"]["init_args"]["padding"],
+            dim=config["model"]["init_args"]["head"]["init_args"]["dim"],
+            n_fft=config["model"]["init_args"]["head"]["init_args"]["n_fft"],
+            hop_length=config["model"]["init_args"]["head"]["init_args"]["hop_length"],
+            padding=config["model"]["init_args"]["head"]["init_args"]["padding"],
         )
         model = cls(feature_extractor=feature_extractor, backbone=backbone, head=head)
         return model
@@ -125,10 +180,14 @@ class WavTokenizer(nn.Module):
         Class method to create a new Vocos model instance from a pre-trained model stored in the Hugging Face model hub.
         """
         model = self.from_hparams0802(config_path)
-        state_dict_raw = torch.load(model_path, map_location="cpu")['state_dict']
+        state_dict_raw = torch.load(model_path, map_location="cpu")["state_dict"]
         state_dict = dict()
         for k, v in state_dict_raw.items():
-            if k.startswith('backbone.') or k.startswith('head.') or k.startswith('feature_extractor.'):
+            if (
+                k.startswith("backbone.")
+                or k.startswith("head.")
+                or k.startswith("feature_extractor.")
+            ):
                 state_dict[k] = v
         # if isinstance(model.feature_extractor, EncodecFeatures):
         #     encodec_parameters = {
@@ -158,13 +217,11 @@ class WavTokenizer(nn.Module):
         audio_output = self.decode(features, **kwargs)
         return audio_output
 
-
     # 0818
     @torch.inference_mode()
     def encode(self, audio_input: torch.Tensor, **kwargs: Any) -> torch.Tensor:
         features, _, _ = self.feature_extractor(audio_input, **kwargs)
         return features
-
 
     @torch.inference_mode()
     def decode(self, features_input: torch.Tensor, **kwargs: Any) -> torch.Tensor:
@@ -207,7 +264,9 @@ class WavTokenizer(nn.Module):
         n_bins = self.feature_extractor.encodec.quantizer.bins
         offsets = torch.arange(0, n_bins * len(codes), n_bins, device=codes.device)
         embeddings_idxs = codes + offsets.view(-1, 1, 1)
-        features = torch.nn.functional.embedding(embeddings_idxs, self.feature_extractor.codebook_weights).sum(dim=0)
+        features = torch.nn.functional.embedding(
+            embeddings_idxs, self.feature_extractor.codebook_weights
+        ).sum(dim=0)
         features = features.transpose(1, 2)
 
         return features

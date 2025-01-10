@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import List, Tuple
 
 import torch
 from torch import nn
@@ -17,13 +17,22 @@ class MultiPeriodDiscriminator(nn.Module):
             Defaults to None.
     """
 
-    def __init__(self, periods: Tuple[int] = (2, 3, 5, 7, 11), num_embeddings: int = None):
+    def __init__(
+        self, periods: Tuple[int] = (2, 3, 5, 7, 11), num_embeddings: int = None
+    ):
         super().__init__()
-        self.discriminators = nn.ModuleList([DiscriminatorP(period=p, num_embeddings=num_embeddings) for p in periods])
+        self.discriminators = nn.ModuleList(
+            [DiscriminatorP(period=p, num_embeddings=num_embeddings) for p in periods]
+        )
 
     def forward(
         self, y: torch.Tensor, y_hat: torch.Tensor, bandwidth_id: torch.Tensor = None
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[List[torch.Tensor]], List[List[torch.Tensor]]]:
+    ) -> Tuple[
+        List[torch.Tensor],
+        List[torch.Tensor],
+        List[List[torch.Tensor]],
+        List[List[torch.Tensor]],
+    ]:
         y_d_rs = []
         y_d_gs = []
         fmap_rs = []
@@ -53,15 +62,57 @@ class DiscriminatorP(nn.Module):
         self.period = period
         self.convs = nn.ModuleList(
             [
-                weight_norm(Conv2d(in_channels, 32, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-                weight_norm(Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-                weight_norm(Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-                weight_norm(Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-                weight_norm(Conv2d(1024, 1024, (kernel_size, 1), (1, 1), padding=(kernel_size // 2, 0))),
+                weight_norm(
+                    Conv2d(
+                        in_channels,
+                        32,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(kernel_size // 2, 0),
+                    )
+                ),
+                weight_norm(
+                    Conv2d(
+                        32,
+                        128,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(kernel_size // 2, 0),
+                    )
+                ),
+                weight_norm(
+                    Conv2d(
+                        128,
+                        512,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(kernel_size // 2, 0),
+                    )
+                ),
+                weight_norm(
+                    Conv2d(
+                        512,
+                        1024,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(kernel_size // 2, 0),
+                    )
+                ),
+                weight_norm(
+                    Conv2d(
+                        1024,
+                        1024,
+                        (kernel_size, 1),
+                        (1, 1),
+                        padding=(kernel_size // 2, 0),
+                    )
+                ),
             ]
         )
         if num_embeddings is not None:
-            self.emb = torch.nn.Embedding(num_embeddings=num_embeddings, embedding_dim=1024)
+            self.emb = torch.nn.Embedding(
+                num_embeddings=num_embeddings, embedding_dim=1024
+            )
             torch.nn.init.zeros_(self.emb.weight)
 
         self.conv_post = weight_norm(Conv2d(1024, 1, (3, 1), 1, padding=(1, 0)))
@@ -101,7 +152,11 @@ class DiscriminatorP(nn.Module):
 class MultiResolutionDiscriminator(nn.Module):
     def __init__(
         self,
-        resolutions: Tuple[Tuple[int, int, int]] = ((1024, 256, 1024), (2048, 512, 2048), (512, 128, 512)),
+        resolutions: Tuple[Tuple[int, int, int]] = (
+            (1024, 256, 1024),
+            (2048, 512, 2048),
+            (512, 128, 512),
+        ),
         num_embeddings: int = None,
     ):
         """
@@ -116,12 +171,20 @@ class MultiResolutionDiscriminator(nn.Module):
         """
         super().__init__()
         self.discriminators = nn.ModuleList(
-            [DiscriminatorR(resolution=r, num_embeddings=num_embeddings) for r in resolutions]
+            [
+                DiscriminatorR(resolution=r, num_embeddings=num_embeddings)
+                for r in resolutions
+            ]
         )
 
     def forward(
         self, y: torch.Tensor, y_hat: torch.Tensor, bandwidth_id: torch.Tensor = None
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[List[torch.Tensor]], List[List[torch.Tensor]]]:
+    ) -> Tuple[
+        List[torch.Tensor],
+        List[torch.Tensor],
+        List[List[torch.Tensor]],
+        List[List[torch.Tensor]],
+    ]:
         y_d_rs = []
         y_d_gs = []
         fmap_rs = []
@@ -153,15 +216,49 @@ class DiscriminatorR(nn.Module):
         self.lrelu_slope = lrelu_slope
         self.convs = nn.ModuleList(
             [
-                weight_norm(nn.Conv2d(in_channels, channels, kernel_size=(7, 5), stride=(2, 2), padding=(3, 2))),
-                weight_norm(nn.Conv2d(channels, channels, kernel_size=(5, 3), stride=(2, 1), padding=(2, 1))),
-                weight_norm(nn.Conv2d(channels, channels, kernel_size=(5, 3), stride=(2, 2), padding=(2, 1))),
-                weight_norm(nn.Conv2d(channels, channels, kernel_size=3, stride=(2, 1), padding=1)),
-                weight_norm(nn.Conv2d(channels, channels, kernel_size=3, stride=(2, 2), padding=1)),
+                weight_norm(
+                    nn.Conv2d(
+                        in_channels,
+                        channels,
+                        kernel_size=(7, 5),
+                        stride=(2, 2),
+                        padding=(3, 2),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv2d(
+                        channels,
+                        channels,
+                        kernel_size=(5, 3),
+                        stride=(2, 1),
+                        padding=(2, 1),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv2d(
+                        channels,
+                        channels,
+                        kernel_size=(5, 3),
+                        stride=(2, 2),
+                        padding=(2, 1),
+                    )
+                ),
+                weight_norm(
+                    nn.Conv2d(
+                        channels, channels, kernel_size=3, stride=(2, 1), padding=1
+                    )
+                ),
+                weight_norm(
+                    nn.Conv2d(
+                        channels, channels, kernel_size=3, stride=(2, 2), padding=1
+                    )
+                ),
             ]
         )
         if num_embeddings is not None:
-            self.emb = torch.nn.Embedding(num_embeddings=num_embeddings, embedding_dim=channels)
+            self.emb = torch.nn.Embedding(
+                num_embeddings=num_embeddings, embedding_dim=channels
+            )
             torch.nn.init.zeros_(self.emb.weight)
         self.conv_post = weight_norm(nn.Conv2d(channels, 1, (3, 3), padding=(1, 1)))
 

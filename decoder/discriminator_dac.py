@@ -1,13 +1,14 @@
+from collections import namedtuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # from audiotools import AudioSignal
 # from audiotools import ml
 # from audiotools import STFTParams
 from einops import rearrange
 from torch.nn.utils import weight_norm
-
-from collections import namedtuple
 
 STFTParams = namedtuple(
     "STFTParams",
@@ -162,12 +163,16 @@ class MRD(nn.Module):
 
         # x.squeeze(0).stft(n_fft=1024,win_length=1024,return_complex=True).size()
         # breakpoint()
-        if x.size(0)==1:
+        if x.size(0) == 1:
             # x = torch.view_as_real(x.squeeze(0).stft(n_fft=self.window_length,return_complex=True).unsqueeze(0))
-            x = torch.view_as_real(x.squeeze(0).stft(n_fft=self.n_fft,return_complex=True).unsqueeze(0))
+            x = torch.view_as_real(
+                x.squeeze(0).stft(n_fft=self.n_fft, return_complex=True).unsqueeze(0)
+            )
         else:
             # x = torch.view_as_real(x.squeeze(1).stft(n_fft=self.window_length,return_complex=True).unsqueeze(1))
-            x = torch.view_as_real(x.squeeze(1).stft(n_fft=self.n_fft,return_complex=True).unsqueeze(1))
+            x = torch.view_as_real(
+                x.squeeze(1).stft(n_fft=self.n_fft, return_complex=True).unsqueeze(1)
+            )
         x = rearrange(x, "b 1 f t c -> (b 1) c t f")
         # Split into bands
         x_bands = [x[..., b[0] : b[1]] for b in self.bands]

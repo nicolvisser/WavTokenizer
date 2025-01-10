@@ -1,12 +1,13 @@
+import math
 from typing import List
 
 import torch
 import torchaudio
 from torch import nn
-import math
+
 from decoder.modules import safe_log
-from encoder.modules import SEANetEncoder, SEANetDecoder
 from encoder import EncodecModel
+from encoder.modules import SEANetDecoder, SEANetEncoder
 from encoder.quantization import ResidualVectorQuantizer
 
 
@@ -28,7 +29,14 @@ class FeatureExtractor(nn.Module):
 
 
 class MelSpectrogramFeatures(FeatureExtractor):
-    def __init__(self, sample_rate=24000, n_fft=1024, hop_length=256, n_mels=100, padding="center"):
+    def __init__(
+        self,
+        sample_rate=24000,
+        n_fft=1024,
+        hop_length=256,
+        n_mels=100,
+        padding="center",
+    ):
         super().__init__()
         if padding not in ["center", "same"]:
             raise ValueError("Padding must be 'center' or 'same'.")
@@ -57,7 +65,7 @@ class EncodecFeatures(FeatureExtractor):
         encodec_model: str = "encodec_24khz",
         bandwidths: List[float] = [1.5, 3.0, 6.0, 12.0],
         train_codebooks: bool = False,
-        num_quantizers: int = 1, 
+        num_quantizers: int = 1,
         dowmsamples: List[int] = [6, 5, 5, 4],
         vq_bins: int = 16384,
         vq_kmeans: int = 800,
@@ -67,22 +75,62 @@ class EncodecFeatures(FeatureExtractor):
         # breakpoint()
         self.frame_rate = 25  # not use
         # n_q = int(bandwidths[-1]*1000/(math.log2(2048) * self.frame_rate))
-        n_q = num_quantizers   # important
-        encoder = SEANetEncoder(causal=False, n_residual_layers=1, norm='weight_norm', pad_mode='reflect', lstm=2,
-                                dimension=512, channels=1, n_filters=32, ratios=dowmsamples, activation='ELU',
-                                kernel_size=7, residual_kernel_size=3, last_kernel_size=7, dilation_base=2,
-                                true_skip=False, compress=2)
-        decoder = SEANetDecoder(causal=False, n_residual_layers=1, norm='weight_norm', pad_mode='reflect', lstm=2,
-                                dimension=512, channels=1, n_filters=32, ratios=[8, 5, 4, 2], activation='ELU',
-                                kernel_size=7, residual_kernel_size=3, last_kernel_size=7, dilation_base=2,
-                                true_skip=False, compress=2)
-        quantizer = ResidualVectorQuantizer(dimension=512, n_q=n_q, bins=vq_bins, kmeans_iters=vq_kmeans,
-                                            decay=0.99, kmeans_init=True)
+        n_q = num_quantizers  # important
+        encoder = SEANetEncoder(
+            causal=False,
+            n_residual_layers=1,
+            norm="weight_norm",
+            pad_mode="reflect",
+            lstm=2,
+            dimension=512,
+            channels=1,
+            n_filters=32,
+            ratios=dowmsamples,
+            activation="ELU",
+            kernel_size=7,
+            residual_kernel_size=3,
+            last_kernel_size=7,
+            dilation_base=2,
+            true_skip=False,
+            compress=2,
+        )
+        decoder = SEANetDecoder(
+            causal=False,
+            n_residual_layers=1,
+            norm="weight_norm",
+            pad_mode="reflect",
+            lstm=2,
+            dimension=512,
+            channels=1,
+            n_filters=32,
+            ratios=[8, 5, 4, 2],
+            activation="ELU",
+            kernel_size=7,
+            residual_kernel_size=3,
+            last_kernel_size=7,
+            dilation_base=2,
+            true_skip=False,
+            compress=2,
+        )
+        quantizer = ResidualVectorQuantizer(
+            dimension=512,
+            n_q=n_q,
+            bins=vq_bins,
+            kmeans_iters=vq_kmeans,
+            decay=0.99,
+            kmeans_init=True,
+        )
 
         # breakpoint()
         if encodec_model == "encodec_24khz":
-            self.encodec = EncodecModel(encoder=encoder, decoder=decoder, quantizer=quantizer,
-                                        target_bandwidths=bandwidths, sample_rate=24000, channels=1)
+            self.encodec = EncodecModel(
+                encoder=encoder,
+                decoder=decoder,
+                quantizer=quantizer,
+                target_bandwidths=bandwidths,
+                sample_rate=24000,
+                channels=1,
+            )
         else:
             raise ValueError(
                 f"Unsupported encodec_model: {encodec_model}. Supported options are 'encodec_24khz'."
@@ -105,15 +153,17 @@ class EncodecFeatures(FeatureExtractor):
         if self.training:
             self.encodec.train()
 
-        audio = audio.unsqueeze(1)                  # audio(16,24000)
+        audio = audio.unsqueeze(1)  # audio(16,24000)
 
         # breakpoint()
 
         emb = self.encodec.encoder(audio)
-        q_res = self.encodec.quantizer(emb, self.frame_rate, bandwidth=self.bandwidths[bandwidth_id])
+        q_res = self.encodec.quantizer(
+            emb, self.frame_rate, bandwidth=self.bandwidths[bandwidth_id]
+        )
         quantized = q_res.quantized
         codes = q_res.codes
-        commit_loss = q_res.penalty                 # codes(8,16,75),features(16,128,75)
+        commit_loss = q_res.penalty  # codes(8,16,75),features(16,128,75)
 
         return quantized, codes, commit_loss
 
@@ -131,11 +181,13 @@ class EncodecFeatures(FeatureExtractor):
         if self.training:
             self.encodec.train()
 
-        audio = audio.unsqueeze(1)                  # audio(16,24000)
+        audio = audio.unsqueeze(1)  # audio(16,24000)
         emb = self.encodec.encoder(audio)
-        q_res = self.encodec.quantizer.infer(emb, self.frame_rate, bandwidth=self.bandwidths[bandwidth_id])
+        q_res = self.encodec.quantizer.infer(
+            emb, self.frame_rate, bandwidth=self.bandwidths[bandwidth_id]
+        )
         quantized = q_res.quantized
         codes = q_res.codes
-        commit_loss = q_res.penalty                 # codes(8,16,75),features(16,128,75)
+        commit_loss = q_res.penalty  # codes(8,16,75),features(16,128,75)
 
         return quantized, codes, commit_loss

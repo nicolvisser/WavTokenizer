@@ -24,7 +24,9 @@ class UTMOSScore:
         filepath = os.path.join(os.path.dirname(__file__), ckpt_path)
         if not os.path.exists(filepath):
             download_file(UTMOS_CKPT_URL, filepath)
-        self.model = BaselineLightningModule.load_from_checkpoint(filepath).eval().to(device)
+        self.model = (
+            BaselineLightningModule.load_from_checkpoint(filepath).eval().to(device)
+        )
 
     def score(self, wavs: torch.tensor) -> torch.tensor:
         """
@@ -96,13 +98,28 @@ class BaselineLightningModule(pl.LightningModule):
 
     def construct_model(self):
         self.feature_extractors = nn.ModuleList(
-            [load_ssl_model(ckpt_path="wav2vec_small.pt"), DomainEmbedding(3, 128),]
+            [
+                load_ssl_model(ckpt_path="wav2vec_small.pt"),
+                DomainEmbedding(3, 128),
+            ]
         )
-        output_dim = sum([feature_extractor.get_output_dim() for feature_extractor in self.feature_extractors])
-        output_layers = [LDConditioner(judge_dim=128, num_judges=3000, input_dim=output_dim)]
+        output_dim = sum(
+            [
+                feature_extractor.get_output_dim()
+                for feature_extractor in self.feature_extractors
+            ]
+        )
+        output_layers = [
+            LDConditioner(judge_dim=128, num_judges=3000, input_dim=output_dim)
+        ]
         output_dim = output_layers[-1].get_output_dim()
         output_layers.append(
-            Projection(hidden_dim=2048, activation=torch.nn.ReLU(), range_clipping=False, input_dim=output_dim)
+            Projection(
+                hidden_dim=2048,
+                activation=torch.nn.ReLU(),
+                range_clipping=False,
+                input_dim=output_dim,
+            )
         )
 
         self.output_layers = nn.ModuleList(output_layers)
@@ -176,20 +193,33 @@ class LDConditioner(nn.Module):
         judge_ids = batch["judge_id"]
         if "phoneme-feature" in x.keys():
             concatenated_feature = torch.cat(
-                (x["ssl-feature"], x["phoneme-feature"].unsqueeze(1).expand(-1, x["ssl-feature"].size(1), -1)), dim=2
+                (
+                    x["ssl-feature"],
+                    x["phoneme-feature"]
+                    .unsqueeze(1)
+                    .expand(-1, x["ssl-feature"].size(1), -1),
+                ),
+                dim=2,
             )
         else:
             concatenated_feature = x["ssl-feature"]
         if "domain-feature" in x.keys():
             concatenated_feature = torch.cat(
-                (concatenated_feature, x["domain-feature"].unsqueeze(1).expand(-1, concatenated_feature.size(1), -1),),
+                (
+                    concatenated_feature,
+                    x["domain-feature"]
+                    .unsqueeze(1)
+                    .expand(-1, concatenated_feature.size(1), -1),
+                ),
                 dim=2,
             )
         if judge_ids != None:
             concatenated_feature = torch.cat(
                 (
                     concatenated_feature,
-                    self.judge_embedding(judge_ids).unsqueeze(1).expand(-1, concatenated_feature.size(1), -1),
+                    self.judge_embedding(judge_ids)
+                    .unsqueeze(1)
+                    .expand(-1, concatenated_feature.size(1), -1),
                 ),
                 dim=2,
             )
@@ -206,7 +236,10 @@ class Projection(nn.Module):
             self.proj = nn.Tanh()
 
         self.net = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim), activation, nn.Dropout(0.3), nn.Linear(hidden_dim, output_dim),
+            nn.Linear(input_dim, hidden_dim),
+            activation,
+            nn.Dropout(0.3),
+            nn.Linear(hidden_dim, output_dim),
         )
         self.output_dim = output_dim
 

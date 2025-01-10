@@ -1,7 +1,8 @@
 import os
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
-from pytorch_lightning.cli import LightningCLI, ArgsType
+from pytorch_lightning.cli import ArgsType, LightningCLI
+
+# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
 def cli_main(args: ArgsType = None):

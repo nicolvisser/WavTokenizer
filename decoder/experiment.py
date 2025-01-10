@@ -7,13 +7,20 @@ import torchaudio
 import transformers
 
 from decoder.discriminator_dac import DACDiscriminator
-from decoder.discriminators import (MultiPeriodDiscriminator,
-                                    MultiResolutionDiscriminator)
+from decoder.discriminators import (
+    MultiPeriodDiscriminator,
+    MultiResolutionDiscriminator,
+)
 from decoder.feature_extractors import FeatureExtractor
 from decoder.heads import FourierHead
 from decoder.helpers import plot_spectrogram_to_numpy
-from decoder.loss import (DACGANLoss, DiscriminatorLoss, FeatureMatchingLoss,
-                          GeneratorLoss, MelSpecReconstructionLoss)
+from decoder.loss import (
+    DACGANLoss,
+    DiscriminatorLoss,
+    FeatureMatchingLoss,
+    GeneratorLoss,
+    MelSpecReconstructionLoss,
+)
 from decoder.models import Backbone
 from decoder.modules import safe_log
 
@@ -69,7 +76,6 @@ class VocosExp(pl.LightningModule):
         self.multiperioddisc = MultiPeriodDiscriminator()
         self.multiresddisc = MultiResolutionDiscriminator()
 
-        
         self.dac = DACDiscriminator()
 
         self.dacdiscriminator = DACGANLoss(self.dac)
@@ -99,15 +105,22 @@ class VocosExp(pl.LightningModule):
 
         max_steps = self.trainer.max_steps // 2  # Max steps per optimizer
         scheduler_disc = transformers.get_cosine_schedule_with_warmup(
-            opt_disc, num_warmup_steps=self.hparams.num_warmup_steps, num_training_steps=max_steps,
+            opt_disc,
+            num_warmup_steps=self.hparams.num_warmup_steps,
+            num_training_steps=max_steps,
         )
         scheduler_gen = transformers.get_cosine_schedule_with_warmup(
-            opt_gen, num_warmup_steps=self.hparams.num_warmup_steps, num_training_steps=max_steps,
+            opt_gen,
+            num_warmup_steps=self.hparams.num_warmup_steps,
+            num_training_steps=max_steps,
         )
 
         return (
             [opt_disc, opt_gen],
-            [{"scheduler": scheduler_disc, "interval": "step"}, {"scheduler": scheduler_gen, "interval": "step"}],
+            [
+                {"scheduler": scheduler_disc, "interval": "step"},
+                {"scheduler": scheduler_gen, "interval": "step"},
+            ],
         )
 
     def forward(self, audio_input, **kwargs):
@@ -125,11 +138,20 @@ class VocosExp(pl.LightningModule):
             with torch.no_grad():
                 audio_hat, _ = self(audio_input, **kwargs)
 
+            loss_dac = self.dacdiscriminator.discriminator_loss(
+                audio_hat.unsqueeze(1), audio_input.unsqueeze(1)
+            )
 
-            loss_dac=self.dacdiscriminator.discriminator_loss(audio_hat.unsqueeze(1),audio_input.unsqueeze(1))
-
-            real_score_mp, gen_score_mp, _, _ = self.multiperioddisc(y=audio_input, y_hat=audio_hat, **kwargs,)
-            real_score_mrd, gen_score_mrd, _, _ = self.multiresddisc(y=audio_input, y_hat=audio_hat, **kwargs,)
+            real_score_mp, gen_score_mp, _, _ = self.multiperioddisc(
+                y=audio_input,
+                y_hat=audio_hat,
+                **kwargs,
+            )
+            real_score_mrd, gen_score_mrd, _, _ = self.multiresddisc(
+                y=audio_input,
+                y_hat=audio_hat,
+                **kwargs,
+            )
             loss_mp, loss_mp_real, _ = self.disc_loss(
                 disc_real_outputs=real_score_mp, disc_generated_outputs=gen_score_mp
             )
@@ -151,19 +173,31 @@ class VocosExp(pl.LightningModule):
             audio_hat, commit_loss = self(audio_input, **kwargs)
             if self.train_discriminator:
 
-                loss_dac_1,loss_dac_2 = self.dacdiscriminator.generator_loss(audio_hat.unsqueeze(1),audio_input.unsqueeze(1))
+                loss_dac_1, loss_dac_2 = self.dacdiscriminator.generator_loss(
+                    audio_hat.unsqueeze(1), audio_input.unsqueeze(1)
+                )
                 _, gen_score_mp, fmap_rs_mp, fmap_gs_mp = self.multiperioddisc(
-                    y=audio_input, y_hat=audio_hat, **kwargs,
+                    y=audio_input,
+                    y_hat=audio_hat,
+                    **kwargs,
                 )
                 _, gen_score_mrd, fmap_rs_mrd, fmap_gs_mrd = self.multiresddisc(
-                    y=audio_input, y_hat=audio_hat, **kwargs,
+                    y=audio_input,
+                    y_hat=audio_hat,
+                    **kwargs,
                 )
                 loss_gen_mp, list_loss_gen_mp = self.gen_loss(disc_outputs=gen_score_mp)
-                loss_gen_mrd, list_loss_gen_mrd = self.gen_loss(disc_outputs=gen_score_mrd)
+                loss_gen_mrd, list_loss_gen_mrd = self.gen_loss(
+                    disc_outputs=gen_score_mrd
+                )
                 loss_gen_mp = loss_gen_mp / len(list_loss_gen_mp)
                 loss_gen_mrd = loss_gen_mrd / len(list_loss_gen_mrd)
-                loss_fm_mp = self.feat_matching_loss(fmap_r=fmap_rs_mp, fmap_g=fmap_gs_mp) / len(fmap_rs_mp)
-                loss_fm_mrd = self.feat_matching_loss(fmap_r=fmap_rs_mrd, fmap_g=fmap_gs_mrd) / len(fmap_rs_mrd)
+                loss_fm_mp = self.feat_matching_loss(
+                    fmap_r=fmap_rs_mp, fmap_g=fmap_gs_mp
+                ) / len(fmap_rs_mp)
+                loss_fm_mrd = self.feat_matching_loss(
+                    fmap_r=fmap_rs_mrd, fmap_g=fmap_gs_mrd
+                ) / len(fmap_rs_mrd)
 
                 self.log("generator/multi_period_loss", loss_gen_mp)
                 self.log("generator/multi_res_loss", loss_gen_mrd)
@@ -193,10 +227,16 @@ class VocosExp(pl.LightningModule):
 
             if self.global_step % 1000 == 0 and self.global_rank == 0:
                 self.logger.experiment.add_audio(
-                    "train/audio_in", audio_input[0].data.cpu(), self.global_step, self.hparams.sample_rate
+                    "train/audio_in",
+                    audio_input[0].data.cpu(),
+                    self.global_step,
+                    self.hparams.sample_rate,
                 )
                 self.logger.experiment.add_audio(
-                    "train/audio_pred", audio_hat[0].data.cpu(), self.global_step, self.hparams.sample_rate
+                    "train/audio_pred",
+                    audio_hat[0].data.cpu(),
+                    self.global_step,
+                    self.hparams.sample_rate,
                 )
                 with torch.no_grad():
                     mel = safe_log(self.melspec_loss.mel_spec(audio_input[0]))
@@ -227,13 +267,19 @@ class VocosExp(pl.LightningModule):
         audio_input = batch
         audio_hat, commit_loss = self(audio_input, **kwargs)
 
-        audio_16_khz = torchaudio.functional.resample(audio_input, orig_freq=self.hparams.sample_rate, new_freq=16000)
-        audio_hat_16khz = torchaudio.functional.resample(audio_hat, orig_freq=self.hparams.sample_rate, new_freq=16000)
+        audio_16_khz = torchaudio.functional.resample(
+            audio_input, orig_freq=self.hparams.sample_rate, new_freq=16000
+        )
+        audio_hat_16khz = torchaudio.functional.resample(
+            audio_hat, orig_freq=self.hparams.sample_rate, new_freq=16000
+        )
 
         if self.hparams.evaluate_periodicty:
             from metrics.periodicity import calculate_periodicity_metrics
 
-            periodicity_loss, pitch_loss, f1_score = calculate_periodicity_metrics(audio_16_khz, audio_hat_16khz)
+            periodicity_loss, pitch_loss, f1_score = calculate_periodicity_metrics(
+                audio_16_khz, audio_hat_16khz
+            )
         else:
             periodicity_loss = pitch_loss = f1_score = 0
 
@@ -246,7 +292,9 @@ class VocosExp(pl.LightningModule):
             from pesq import pesq
 
             pesq_score = 0
-            for ref, deg in zip(audio_16_khz.cpu().numpy(), audio_hat_16khz.cpu().numpy()):
+            for ref, deg in zip(
+                audio_16_khz.cpu().numpy(), audio_hat_16khz.cpu().numpy()
+            ):
                 pesq_score += pesq(16000, ref, deg, "wb", on_error=1)
             pesq_score /= len(audio_16_khz)
             pesq_score = torch.tensor(pesq_score)
@@ -254,7 +302,9 @@ class VocosExp(pl.LightningModule):
             pesq_score = torch.zeros(1, device=self.device)
 
         mel_loss = self.melspec_loss(audio_hat.unsqueeze(1), audio_input.unsqueeze(1))
-        total_loss = mel_loss + (5 - utmos_score) + (5 - pesq_score) + 1000 * commit_loss
+        total_loss = (
+            mel_loss + (5 - utmos_score) + (5 - pesq_score) + 1000 * commit_loss
+        )
 
         return {
             "val_loss": total_loss,
@@ -272,10 +322,16 @@ class VocosExp(pl.LightningModule):
         if self.global_rank == 0:
             *_, audio_in, audio_pred = outputs[0].values()
             self.logger.experiment.add_audio(
-                "val_in", audio_in.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
+                "val_in",
+                audio_in.data.cpu().numpy(),
+                self.global_step,
+                self.hparams.sample_rate,
             )
             self.logger.experiment.add_audio(
-                "val_pred", audio_pred.data.cpu().numpy(), self.global_step, self.hparams.sample_rate
+                "val_pred",
+                audio_pred.data.cpu().numpy(),
+                self.global_step,
+                self.hparams.sample_rate,
             )
             mel_target = safe_log(self.melspec_loss.mel_spec(audio_in))
             mel_hat = safe_log(self.melspec_loss.mel_spec(audio_pred))
@@ -328,10 +384,15 @@ class VocosExp(pl.LightningModule):
             progress = float(current_step - self.hparams.num_warmup_steps) / float(
                 max(1, max_steps - self.hparams.num_warmup_steps)
             )
-            return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
+            return max(
+                0.0,
+                0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)),
+            )
 
         if self.hparams.decay_mel_coeff:
-            self.mel_loss_coeff = self.base_mel_coeff * mel_loss_coeff_decay(self.global_step + 1)
+            self.mel_loss_coeff = self.base_mel_coeff * mel_loss_coeff_decay(
+                self.global_step + 1
+            )
 
 
 class WavTokenizer(VocosExp):
@@ -377,17 +438,21 @@ class WavTokenizer(VocosExp):
             evaluate_utmos,
             evaluate_pesq,
             evaluate_periodicty,
-            resume
+            resume,
         )
         # Override with conditional discriminators
         # VocosExp.__init__(self, feature_extractor, backbone, head, resume_config, resume_model)
         # if self.resume:
         #     VocosExp.load_from_checkpoint(self.resume_model)
-        self.multiperioddisc = MultiPeriodDiscriminator(num_embeddings=len(self.feature_extractor.bandwidths))
-        self.multiresddisc = MultiResolutionDiscriminator(num_embeddings=len(self.feature_extractor.bandwidths))
+        self.multiperioddisc = MultiPeriodDiscriminator(
+            num_embeddings=len(self.feature_extractor.bandwidths)
+        )
+        self.multiresddisc = MultiResolutionDiscriminator(
+            num_embeddings=len(self.feature_extractor.bandwidths)
+        )
         self.dac = DACDiscriminator()
         if self.resume:
-            print('加载预训练模型:', self.resume_model)
+            print("加载预训练模型:", self.resume_model)
             # with open(self.resume_config, "r") as f:
             #     config = yaml.safe_load(f)
             # feature_extractor = instantiate_class(args=(), init=config['model']['init_args']["feature_extractor"])
@@ -395,7 +460,9 @@ class WavTokenizer(VocosExp):
             # head = instantiate_class(args=(), init=config['model']['init_args']["head"])
 
             # 不加载量化器部分权重
-            state_dict_raw = torch.load(self.resume_model, map_location=self.device)['state_dict']
+            state_dict_raw = torch.load(self.resume_model, map_location=self.device)[
+                "state_dict"
+            ]
             state_dict_fa_qa = dict()
             state_dict_fa_en = dict()
             state_dict_fa_de = dict()
@@ -406,34 +473,40 @@ class WavTokenizer(VocosExp):
             state_dict_dac = dict()
             for k, v in state_dict_raw.items():
                 # breakpoint()
-                if k.startswith('feature_extractor.encodec.quantizer'):
+                if k.startswith("feature_extractor.encodec.quantizer"):
                     # breakpoint()
                     # print("*****",k)
                     ss = k[46:48]
-                    if ss[-1] == '.':
+                    if ss[-1] == ".":
                         num = int(ss[0])
                         # print("num,k",num,k[36:])
                         if num <= 7:
                             state_dict_fa_qa[k[36:]] = v
-                if k.startswith('feature_extractor.encodec.encoder'):
+                if k.startswith("feature_extractor.encodec.encoder"):
                     state_dict_fa_en[k[34:]] = v
-                if k.startswith('feature_extractor.encodec.decoder'):
+                if k.startswith("feature_extractor.encodec.decoder"):
                     state_dict_fa_de[k[34:]] = v
-                if k.startswith('backbone.'):
+                if k.startswith("backbone."):
                     state_dict_bb[k[9:]] = v
-                if k.startswith('head.'):
+                if k.startswith("head."):
                     state_dict_hd[k[5:]] = v
-                if k.startswith('multiperioddisc.'):
+                if k.startswith("multiperioddisc."):
                     state_dict_mp[k[16:]] = v
-                if k.startswith('multiresddisc.'):
+                if k.startswith("multiresddisc."):
                     state_dict_mr[k[14:]] = v
-                if k.startswith('dac.'):
+                if k.startswith("dac."):
                     state_dict_dac[k[4:]] = v
             # breakpoint()
             # feature_extractor.encodec.quantizer.load_state_dict(state_dict_fa_qa, strict=True)
-            feature_extractor.encodec.encoder.load_state_dict(state_dict_fa_en, strict=True)
-            feature_extractor.encodec.decoder.load_state_dict(state_dict_fa_de, strict=True)
-            feature_extractor.encodec.quantizer.load_state_dict(state_dict_fa_qa, strict=True)
+            feature_extractor.encodec.encoder.load_state_dict(
+                state_dict_fa_en, strict=True
+            )
+            feature_extractor.encodec.decoder.load_state_dict(
+                state_dict_fa_de, strict=True
+            )
+            feature_extractor.encodec.quantizer.load_state_dict(
+                state_dict_fa_qa, strict=True
+            )
             backbone.load_state_dict(state_dict_bb, strict=True)
             head.load_state_dict(state_dict_hd, strict=True)
             self.feature_extractor = feature_extractor.to(self.device)
@@ -450,7 +523,12 @@ class WavTokenizer(VocosExp):
         #     model_path = self.resume_model
         #     self.pretrained_load(config_path, model_path)
         #     print('加载预训练模型:', model_path)
-        bandwidth_id = torch.randint(low=0, high=len(self.feature_extractor.bandwidths), size=(1,), device=self.device,)
+        bandwidth_id = torch.randint(
+            low=0,
+            high=len(self.feature_extractor.bandwidths),
+            size=(1,),
+            device=self.device,
+        )
         output = super().training_step(*args, bandwidth_id=bandwidth_id)
         return output
 
@@ -464,10 +542,15 @@ class WavTokenizer(VocosExp):
         if self.global_rank == 0:
             *_, audio_in, _ = outputs[0].values()
             # Resynthesis with encodec for reference
-            self.feature_extractor.encodec.set_target_bandwidth(self.feature_extractor.bandwidths[0])
+            self.feature_extractor.encodec.set_target_bandwidth(
+                self.feature_extractor.bandwidths[0]
+            )
             encodec_audio = self.feature_extractor.encodec(audio_in[None, None, :])
             self.logger.experiment.add_audio(
-                "encodec", encodec_audio[0, 0].data.cpu().numpy(), self.global_step, self.hparams.sample_rate,
+                "encodec",
+                encodec_audio[0, 0].data.cpu().numpy(),
+                self.global_step,
+                self.hparams.sample_rate,
             )
 
         super().validation_epoch_end(outputs)

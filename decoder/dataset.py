@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
 import numpy as np
+import soundfile
 import torch
 import torchaudio
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
-import soundfile
 # import librosa
 
 torch.set_num_threads(1)
@@ -30,7 +30,11 @@ class VocosDataModule(LightningDataModule):
     def _get_dataloder(self, cfg: DataConfig, train: bool):
         dataset = VocosDataset(cfg, train=train)
         dataloader = DataLoader(
-            dataset, batch_size=cfg.batch_size, num_workers=cfg.num_workers, shuffle=train, pin_memory=True,
+            dataset,
+            batch_size=cfg.batch_size,
+            num_workers=cfg.num_workers,
+            shuffle=train,
+            pin_memory=True,
         )
         return dataloader
 
@@ -67,9 +71,13 @@ class VocosDataset(Dataset):
             # print("有问题哈,数据处理部分")
             y = y.mean(dim=-1, keepdim=False)
         gain = np.random.uniform(-1, -6) if self.train else -3
-        y, _ = torchaudio.sox_effects.apply_effects_tensor(y, sr, [["norm", f"{gain:.2f}"]])
+        y, _ = torchaudio.sox_effects.apply_effects_tensor(
+            y, sr, [["norm", f"{gain:.2f}"]]
+        )
         if sr != self.sampling_rate:
-            y = torchaudio.functional.resample(y, orig_freq=sr, new_freq=self.sampling_rate)
+            y = torchaudio.functional.resample(
+                y, orig_freq=sr, new_freq=self.sampling_rate
+            )
         if y.size(-1) < self.num_samples:
             pad_length = self.num_samples - y.size(-1)
             padding_tensor = y.repeat(1, 1 + pad_length // y.size(-1))

@@ -14,6 +14,7 @@ class SLSTM(nn.Module):
     LSTM without worrying about the hidden state, nor the layout of the data.
     Expects input as convolutional layout.
     """
+
     def __init__(self, dimension: int, num_layers: int = 2, skip: bool = True):
         super().__init__()
         self.skip = skip

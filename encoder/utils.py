@@ -6,9 +6,9 @@
 
 """Various utilities."""
 
+import typing as tp
 from hashlib import sha256
 from pathlib import Path
-import typing as tp
 
 import torch
 import torchaudio
@@ -40,7 +40,7 @@ def _linear_overlap_add(frames: tp.List[torch.Tensor], stride: int):
     total_size = stride * (len(frames) - 1) + frames[-1].shape[-1]
 
     frame_length = frames[0].shape[-1]
-    t = torch.linspace(0, 1, frame_length + 2, device=device, dtype=dtype)[1: -1]
+    t = torch.linspace(0, 1, frame_length + 2, device=device, dtype=dtype)[1:-1]
     weight = 0.5 - (t - 0.5).abs()
 
     sum_weight = torch.zeros(total_size, device=device, dtype=dtype)
@@ -49,31 +49,33 @@ def _linear_overlap_add(frames: tp.List[torch.Tensor], stride: int):
 
     for frame in frames:
         frame_length = frame.shape[-1]
-        out[..., offset:offset + frame_length] += weight[:frame_length] * frame
-        sum_weight[offset:offset + frame_length] += weight[:frame_length]
+        out[..., offset : offset + frame_length] += weight[:frame_length] * frame
+        sum_weight[offset : offset + frame_length] += weight[:frame_length]
         offset += stride
     assert sum_weight.min() > 0
     return out / sum_weight
 
 
 def _get_checkpoint_url(root_url: str, checkpoint: str):
-    if not root_url.endswith('/'):
-        root_url += '/'
+    if not root_url.endswith("/"):
+        root_url += "/"
     return root_url + checkpoint
 
 
 def _check_checksum(path: Path, checksum: str):
     sha = sha256()
-    with open(path, 'rb') as file:
+    with open(path, "rb") as file:
         while True:
             buf = file.read(2**20)
             if not buf:
                 break
             sha.update(buf)
-    actual_checksum = sha.hexdigest()[:len(checksum)]
+    actual_checksum = sha.hexdigest()[: len(checksum)]
     if actual_checksum != checksum:
-        raise RuntimeError(f'Invalid checksum for file {path}, '
-                           f'expected {checksum} but got {actual_checksum}')
+        raise RuntimeError(
+            f"Invalid checksum for file {path}, "
+            f"expected {checksum} but got {actual_checksum}"
+        )
 
 
 def convert_audio(wav: torch.Tensor, sr: int, target_sr: int, target_channels: int):
@@ -87,17 +89,25 @@ def convert_audio(wav: torch.Tensor, sr: int, target_sr: int, target_channels: i
     elif channels == 1:
         wav = wav.expand(target_channels, -1)
     else:
-        raise RuntimeError(f"Impossible to convert from {channels} to {target_channels}")
+        raise RuntimeError(
+            f"Impossible to convert from {channels} to {target_channels}"
+        )
     wav = torchaudio.transforms.Resample(sr, target_sr)(wav)
     return wav
 
 
-def save_audio(wav: torch.Tensor, path: tp.Union[Path, str],
-               sample_rate: int, rescale: bool = False):
+def save_audio(
+    wav: torch.Tensor,
+    path: tp.Union[Path, str],
+    sample_rate: int,
+    rescale: bool = False,
+):
     limit = 0.99
     mx = wav.abs().max()
     if rescale:
         wav = wav * min(limit / mx, 1)
     else:
         wav = wav.clamp(-limit, limit)
-    torchaudio.save(str(path), wav, sample_rate=sample_rate, encoding='PCM_S', bits_per_sample=16)
+    torchaudio.save(
+        str(path), wav, sample_rate=sample_rate, encoding="PCM_S", bits_per_sample=16
+    )

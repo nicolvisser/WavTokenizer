@@ -14,7 +14,9 @@ Periodicity metrics adapted from https://github.com/descriptinc/cargan
 
 
 def predict_pitch(
-    audio: torch.Tensor, silence_threshold: float = SILENCE_THRESHOLD, unvoiced_treshold: float = UNVOICED_THRESHOLD
+    audio: torch.Tensor,
+    silence_threshold: float = SILENCE_THRESHOLD,
+    unvoiced_treshold: float = UNVOICED_THRESHOLD,
 ):
     """
     Predicts pitch and periodicity for the given audio.
@@ -57,7 +59,9 @@ def predict_pitch(
     )
 
     # Perceptual weighting
-    freqs = librosa.fft_frequencies(sr=torchcrepe.SAMPLE_RATE, n_fft=torchcrepe.WINDOW_SIZE)
+    freqs = librosa.fft_frequencies(
+        sr=torchcrepe.SAMPLE_RATE, n_fft=torchcrepe.WINDOW_SIZE
+    )
     perceptual_stft = librosa.perceptual_weighting(stft.cpu().numpy(), freqs) - REF_DB
     silence = perceptual_stft.mean(axis=1) < silence_threshold
 
@@ -86,12 +90,16 @@ def calculate_periodicity_metrics(y: torch.Tensor, y_hat: torch.Tensor):
     true_voiced = ~np.isnan(true_pitch)
     pred_voiced = ~np.isnan(pred_pitch)
 
-    periodicity_loss = np.sqrt(((pred_periodicity - true_periodicity) ** 2).mean(axis=1)).mean()
+    periodicity_loss = np.sqrt(
+        ((pred_periodicity - true_periodicity) ** 2).mean(axis=1)
+    ).mean()
 
     # Update pitch rmse
     voiced = true_voiced & pred_voiced
-    difference_cents = 1200 * (np.log2(true_pitch[voiced]) - np.log2(pred_pitch[voiced]))
-    pitch_loss = np.sqrt((difference_cents ** 2).mean())
+    difference_cents = 1200 * (
+        np.log2(true_pitch[voiced]) - np.log2(pred_pitch[voiced])
+    )
+    pitch_loss = np.sqrt((difference_cents**2).mean())
 
     # voiced/unvoiced precision and recall
     true_positives = (true_voiced & pred_voiced).sum()
