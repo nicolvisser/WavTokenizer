@@ -1,7 +1,7 @@
 dependencies = ["torch", "torchaudio"]
 
 URLS = {
-    "small_600_24k_4096": "https://github.com/nicolvisser/WavTokenizer/releases/download/v0.1/WavTokenizer_small_600_24k_4096_d44c40fb",
+    "small_600_24k_4096": "https://github.com/nicolvisser/WavTokenizer/releases/download/v0.1/WavTokenizer_small_600_24k_4096_d44c40fb.ckpt",
     "small_320_24k_4096": "https://github.com/nicolvisser/WavTokenizer/releases/download/v0.1/WavTokenizer_small_320_24k_4096_721a204f.ckpt",
 }
 
