@@ -29,4 +29,4 @@ audio_out = model.decode(features, bandwidth_id=bandwidth_id)
 print(audio_out.shape)
 
 # save audio
-torchaudio.save("data/sample_out.wav", audio_out, 24000)
+torchaudio.save("data/sample_out.wav", audio_out.cpu(), 24000)
