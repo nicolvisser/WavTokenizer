@@ -1,3 +1,8 @@
+import sys
+import os
+# Add parent directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import torch
 import torchaudio
 
@@ -11,6 +16,7 @@ CONFIGS = {
     "75hz": ARGS_SMALL_320_24K_4096,
 }
 
+# you should download the checkpoints from huggingface and put the appropriate paths here
 CHECKPOINT_PATHS = {
     "40hz": "/mnt/wsl/nvme/code/WavTokenizer/checkpoints/WavTokenizer_small_600_24k_4096.ckpt",
     "75hz": "/mnt/wsl/nvme/code/WavTokenizer/checkpoints/WavTokenizer_small_320_24k_4096.ckpt",
