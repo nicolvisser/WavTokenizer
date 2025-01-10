@@ -3,13 +3,13 @@ from decoder.feature_extractors import EncodecFeaturesArgs
 from decoder.heads import ISTFTHeadArgs
 from decoder.models import VocosBackboneArgs
 
-small_600_24k_4096 = WavTokenizerArgs(
+ARGS_SMALL_600_24K_4096 = WavTokenizerArgs(
     feature_extractor=EncodecFeaturesArgs(
         encodec_model="encodec_24khz",
         bandwidths=[6.6, 6.6, 6.6, 6.6],
         train_codebooks=True,
         num_quantizers=1,
-        dowmsamples=[6, 5, 5, 4],
+        downsamples=[6, 5, 5, 4],
         vq_bins=4096,
         vq_kmeans=200,
     ),
@@ -28,13 +28,13 @@ small_600_24k_4096 = WavTokenizerArgs(
     ),
 )
 
-small_320_24k_4096 = WavTokenizerArgs(
+ARGS_SMALL_320_24K_4096 = WavTokenizerArgs(
     feature_extractor=EncodecFeaturesArgs(
         encodec_model="encodec_24khz",
         bandwidths=[6.6, 6.6, 6.6, 6.6],
         train_codebooks=True,
         num_quantizers=1,
-        dowmsamples=[8, 5, 4, 2],
+        downsamples=[8, 5, 4, 2],
         vq_bins=4096,
         vq_kmeans=200,
     ),

@@ -15,7 +15,7 @@ class EncodecFeaturesArgs:
     bandwidths: List[float] = field(default_factory=lambda: [6.6, 6.6, 6.6, 6.6])
     train_codebooks: bool = True
     num_quantizers: int = 1
-    dowmsamples: List[int] = field(default_factory=lambda: [8, 5, 4, 2])
+    downsamples: List[int] = field(default_factory=lambda: [8, 5, 4, 2])
     vq_bins: int = 4096
     vq_kmeans: int = 200
 
@@ -35,7 +35,7 @@ class EncodecFeatures(nn.Module):
             dimension=512,
             channels=1,
             n_filters=32,
-            ratios=args.dowmsamples,
+            ratios=args.downsamples,
             activation="ELU",
             kernel_size=7,
             residual_kernel_size=3,

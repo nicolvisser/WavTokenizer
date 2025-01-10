@@ -4,11 +4,11 @@ import torchaudio
 from decoder.pretrained import WavTokenizer
 from encoder.utils import convert_audio
 
-from configs import small_600_24k_4096, small_320_24k_4096
+from configs import ARGS_SMALL_600_24K_4096, ARGS_SMALL_320_24K_4096
 
 CONFIGS = {
-    "40hz": small_600_24k_4096,
-    "75hz": small_320_24k_4096,
+    "40hz": ARGS_SMALL_600_24K_4096,
+    "75hz": ARGS_SMALL_320_24K_4096,
 }
 
 CHECKPOINT_PATHS = {
