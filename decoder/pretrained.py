@@ -3,7 +3,6 @@ from typing import Any, Dict, Tuple, Union
 
 import torch
 import yaml
-from huggingface_hub import hf_hub_download
 from torch import nn
 
 from decoder.feature_extractors import EncodecFeatures, FeatureExtractor
@@ -87,7 +86,7 @@ class WavTokenizer(nn.Module):
     @classmethod
     def from_pretrained0802(self, config_path, model_path):
         """
-        Class method to create a new Vocos model instance from a pre-trained model stored in the Hugging Face model hub.
+        Class method to create a new Vocos model instance from a pre-trained model stored locally.
         """
         model = self.from_hparams0802(config_path)
         state_dict_raw = torch.load(model_path, map_location="cpu")["state_dict"]
