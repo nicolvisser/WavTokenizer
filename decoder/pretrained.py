@@ -1,12 +1,21 @@
+from dataclasses import dataclass, field
 from typing import Any
 
 import torch
 import yaml
 from torch import nn
 
-from decoder.feature_extractors import EncodecFeatures, FeatureExtractor
+from decoder.feature_extractors import EncodecFeatures, EncodecFeaturesArgs
 from decoder.heads import ISTFTHead
 from decoder.models import VocosBackbone
+
+
+@dataclass
+class WavTokenizerArgs:
+    feature_extractor: EncodecFeaturesArgs = field(default_factory=EncodecFeaturesArgs)
+
+
+global_args = WavTokenizerArgs()  # temporary
 
 
 class WavTokenizer(nn.Module):
@@ -19,7 +28,7 @@ class WavTokenizer(nn.Module):
 
     def __init__(
         self,
-        feature_extractor: FeatureExtractor,
+        feature_extractor: EncodecFeatures,
         backbone: VocosBackbone,
         head: ISTFTHead,
     ):
@@ -35,29 +44,7 @@ class WavTokenizer(nn.Module):
         """
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        feature_extractor = EncodecFeatures(
-            encodec_model=config["model"]["init_args"]["feature_extractor"][
-                "init_args"
-            ]["encodec_model"],
-            bandwidths=config["model"]["init_args"]["feature_extractor"]["init_args"][
-                "bandwidths"
-            ],
-            train_codebooks=config["model"]["init_args"]["feature_extractor"][
-                "init_args"
-            ]["train_codebooks"],
-            num_quantizers=config["model"]["init_args"]["feature_extractor"][
-                "init_args"
-            ]["num_quantizers"],
-            dowmsamples=config["model"]["init_args"]["feature_extractor"]["init_args"][
-                "dowmsamples"
-            ],
-            vq_bins=config["model"]["init_args"]["feature_extractor"]["init_args"][
-                "vq_bins"
-            ],
-            vq_kmeans=config["model"]["init_args"]["feature_extractor"]["init_args"][
-                "vq_kmeans"
-            ],
-        )
+        feature_extractor = EncodecFeatures(global_args.feature_extractor)
         backbone = VocosBackbone(
             input_channels=config["model"]["init_args"]["backbone"]["init_args"][
                 "input_channels"
@@ -97,12 +84,7 @@ class WavTokenizer(nn.Module):
                 or k.startswith("feature_extractor.")
             ):
                 state_dict[k] = v
-        # if isinstance(model.feature_extractor, EncodecFeatures):
-        #     encodec_parameters = {
-        #         "feature_extractor.encodec." + key: value
-        #         for key, value in model.feature_extractor.encodec.state_dict().items()
-        #     }
-        #     state_dict.update(encodec_parameters)
+
         model.load_state_dict(state_dict)
         model.eval()
         return model
