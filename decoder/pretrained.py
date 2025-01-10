@@ -37,32 +37,26 @@ class WavTokenizer(nn.Module):
         self.head = head
 
     @classmethod
-    def from_hparams0802(cls, config_path: str) -> "WavTokenizer":
+    def from_hparams(cls, config_path: str) -> "WavTokenizer":
         """
         Class method to create a new WavTokenizer model instance from hyperparameters stored in a yaml configuration file.
         """
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
         feature_extractor = EncodecFeatures(
-            EncodecFeaturesArgs(
-                **config["model"]["init_args"]["feature_extractor"]["init_args"]
-            )
+            EncodecFeaturesArgs(**config["feature_extractor"])
         )
-        backbone = VocosBackbone(
-            VocosBackboneArgs(**config["model"]["init_args"]["backbone"]["init_args"])
-        )
-        head = ISTFTHead(
-            ISTFTHeadArgs(**config["model"]["init_args"]["head"]["init_args"])
-        )
+        backbone = VocosBackbone(VocosBackboneArgs(**config["backbone"]))
+        head = ISTFTHead(ISTFTHeadArgs(**config["head"]))
         model = cls(feature_extractor=feature_extractor, backbone=backbone, head=head)
         return model
 
     @classmethod
-    def from_pretrained0802(self, config_path, model_path) -> "WavTokenizer":
+    def from_pretrained(self, config_path, model_path) -> "WavTokenizer":
         """
         Class method to create a new WavTokenizer model instance from a pre-trained model stored locally.
         """
-        model = self.from_hparams0802(config_path)
+        model = self.from_hparams(config_path)
         state_dict_raw = torch.load(model_path, map_location="cpu")["state_dict"]
         state_dict = dict()
         for k, v in state_dict_raw.items():
@@ -95,15 +89,8 @@ class WavTokenizer(nn.Module):
         audio_output = self.decode(features, **kwargs)
         return audio_output
 
-    # 0818
     @torch.inference_mode()
     def encode(self, audio_input: torch.Tensor, **kwargs: Any) -> torch.Tensor:
-        features, discrete_codes, _ = self.feature_extractor(audio_input, **kwargs)
-        return features, discrete_codes
-
-    # 0818
-    @torch.inference_mode()
-    def encode_infer(self, audio_input: torch.Tensor, **kwargs: Any) -> torch.Tensor:
         features, discrete_codes, _ = self.feature_extractor.infer(
             audio_input, **kwargs
         )

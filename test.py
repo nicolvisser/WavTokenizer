@@ -6,21 +6,21 @@ from encoder.utils import convert_audio
 
 device = torch.device("cpu")
 
-config_path = "/mnt/wsl/nvme/code/WavTokenizer/configs/wavtokenizer_smalldata_frame75_3s_nq1_code4096_dim512_kmeans200_attn.yaml"
+config_path = "configs/wavtokenizer_smalldata_frame75_3s_nq1_code4096_dim512_kmeans200_attn.yaml"
 model_path = (
     "/mnt/wsl/nvme/code/WavTokenizer/checkpoints/WavTokenizer_small_320_24k_4096.ckpt"
 )
 
 audio_path = "data/sample.flac"
 
-wavtokenizer = WavTokenizer.from_pretrained0802(config_path, model_path)
+wavtokenizer = WavTokenizer.from_pretrained(config_path, model_path)
 wavtokenizer = wavtokenizer.to(device)
 
 wav, sr = torchaudio.load(audio_path)
 wav = convert_audio(wav, sr, 24000, 1)
 bandwidth_id = torch.tensor([0])
 wav = wav.to(device)
-_, discrete_code = wavtokenizer.encode_infer(wav, bandwidth_id=bandwidth_id)
+_, discrete_code = wavtokenizer.encode(wav, bandwidth_id=bandwidth_id)
 
 features = wavtokenizer.codes_to_features(discrete_code)
 audio_out = wavtokenizer.decode(features, bandwidth_id=bandwidth_id)
