@@ -7,6 +7,7 @@ URLS = {
 
 
 import torch
+import torchaudio
 
 from configs import ARGS_SMALL_320_24K_4096, ARGS_SMALL_600_24K_4096
 from decoder.pretrained import WavTokenizer, WavTokenizerArgs
@@ -23,7 +24,7 @@ def _load(
     model = WavTokenizer(args=args)
     if pretrained:
         state_dict_raw = torch.hub.load_state_dict_from_url(
-            url, map_location='cpu', progress=progress, weights_only=True
+            url, map_location="cpu", progress=progress, weights_only=True
         )["state_dict"]
         state_dict = dict()
         for k, v in state_dict_raw.items():
@@ -35,19 +36,43 @@ def _load(
                 state_dict[k] = v
         model.load_state_dict(state_dict)
         model.eval()
-    return model
+        num_params = sum(p.numel() for p in model.parameters())
+
+    @torch.inference_mode()
+    def encode(model: torch.nn.Module, wav: torch.Tensor, sr: int) -> torch.Tensor:
+        device = next(model.parameters()).device
+        wav = torchaudio.functional.resample(wav, sr, 24000)
+        wav = wav.to(device)
+        bandwidth_id = torch.tensor([0], device=device)
+        _, codes = model.encode(wav, bandwidth_id=bandwidth_id)
+        return codes
+
+    @torch.inference_mode()
+    def decode(model: torch.nn.Module, codes: torch.Tensor) -> torch.Tensor:
+        device = next(model.parameters()).device
+        codes = codes.to(device)
+        bandwidth_id = torch.tensor([0], device=device)
+        features = model.codes_to_features(codes)
+        audio_out = model.decode(features, bandwidth_id=bandwidth_id)
+        sr = 24000
+        return audio_out, sr
+
+    return model, encode, decode
 
 
 def small_600_24k_4096(
     pretrained: bool = True,
     progress: bool = True,
 ) -> WavTokenizer:
-    return _load(
+    model, encode, decode = _load(
         args=ARGS_SMALL_600_24K_4096,
         url=URLS["small_600_24k_4096"],
         pretrained=pretrained,
         progress=progress,
     )
+    num_params = sum(p.numel() for p in model.parameters())
+    print(f"Loaded WavTokenizer small_600_24k_4096 with {num_params:,} parameters")
+    return model, encode, decode
 
 
 def small_320_24k_4096(
@@ -55,18 +80,12 @@ def small_320_24k_4096(
     progress: bool = True,
 ) -> WavTokenizer:
     """WavTokenizer small. 24kHz, 320x downsample (75 Hz), 4096 codebook entries."""
-    return _load(
+    model, encode, decode = _load(
         args=ARGS_SMALL_320_24K_4096,
         url=URLS["small_320_24k_4096"],
         pretrained=pretrained,
         progress=progress,
     )
-
-
-if __name__ == "__main__":
-    state_dict = torch.hub.load_state_dict_from_url(
-        URLS["small_600_24k_4096"],
-        progress=True,
-        weights_only=True,
-    )
-    print(state_dict.keys())
+    num_params = sum(p.numel() for p in model.parameters())
+    print(f"Loaded WavTokenizer small_320_24k_4096 with {num_params:,} parameters")
+    return model, encode, decode
