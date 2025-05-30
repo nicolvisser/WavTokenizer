@@ -5,9 +5,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # load model
 # 40 Hz:
-model, encode, decode = torch.hub.load("nicolvisser/WavTokenizer", "small_600_24k_4096")
+model, encode, decode = torch.hub.load(
+    "nicolvisser/WavTokenizer", "small_600_24k_4096", trust_repo=True
+)
 # or 75 Hz:
-model, encode, decode = torch.hub.load("nicolvisser/WavTokenizer", "small_320_24k_4096")
+# model, encode, decode = torch.hub.load("nicolvisser/WavTokenizer", "small_320_24k_4096", trust_repo=True)
 model.to(device)
 model.eval()
 
